@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   canPerformGestures 是 dispatchGesture 的前提。
-  canRetrieveWindowContent 保持 false：翻页只需注入手势，不读取任何屏幕内容。
+  canRetrieveWindowContent 保持 false：只注入手势，不读取任何屏幕内容。
+  typeWindowStateChanged 只用来取前台应用包名，供「前进」定位目标应用；
+  notificationTimeout 压到 100ms，否则快速切换应用时中间状态会被系统合并掉。
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged"
@@ -10,4 +12,4 @@
     android:canPerformGestures="true"
     android:canRetrieveWindowContent="false"
     android:description="@string/service_description"
-    android:notificationTimeout="500" />
+    android:notificationTimeout="100" />

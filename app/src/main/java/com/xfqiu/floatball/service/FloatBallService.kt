@@ -13,6 +13,7 @@ import android.widget.Toast
 import com.xfqiu.floatball.R
 import com.xfqiu.floatball.SettingsActivity
 import com.xfqiu.floatball.core.BallAction
+import com.xfqiu.floatball.core.ForegroundTracker
 import com.xfqiu.floatball.core.GestureFactory
 import com.xfqiu.floatball.core.Prefs
 import com.xfqiu.floatball.core.realScreenSize
@@ -23,12 +24,14 @@ import com.xfqiu.floatball.core.realScreenSize
  * 1. 只有无障碍服务能向任意应用注入翻页手势；
  * 2. 它可以使用 TYPE_ACCESSIBILITY_OVERLAY，免去悬浮窗权限，且被系统绑定不易回收。
  *
- * 本服务不读取任何屏幕内容（canRetrieveWindowContent=false），只注入手势。
+ * 本服务不读取任何屏幕内容（canRetrieveWindowContent=false）：只注入手势，
+ * 外加从窗口变化事件里取前台应用包名，供「前进」定位目标。
  */
 class FloatBallService : AccessibilityService() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var overlay: OverlayController? = null
+    private var tracker: ForegroundTracker? = null
 
     /** 手势派发期间会打开触摸穿透，重入会让穿透标记的开关次序错乱。 */
     private var gesturePending = false
@@ -36,13 +39,19 @@ class FloatBallService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        tracker = ForegroundTracker(this)
         val controller = OverlayController(this, ::execute)
         overlay = controller
         controller.show()
         KeepAliveService.sync(this, Prefs.of(this).keepAlive)
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+    /** 只取事件里的前台包名喂给「前进」的历史，不读取任何窗口内容。 */
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        val received = event ?: return
+        if (received.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        tracker?.onForeground(received.packageName)
+    }
 
     override fun onInterrupt() = Unit
 
@@ -66,18 +75,31 @@ class FloatBallService : AccessibilityService() {
         gesturePending = false
         overlay?.hide()
         overlay = null
+        tracker = null
         KeepAliveService.sync(this, false)
         if (instance === this) instance = null
     }
 
     private fun execute(action: BallAction) {
         when (action) {
+            BallAction.Back -> performGlobalAction(GLOBAL_ACTION_BACK)
+            BallAction.Forward -> goForward()
             BallAction.PrevPage -> turnPage(forward = false)
             BallAction.NextPage -> turnPage(forward = true)
             BallAction.Home -> performGlobalAction(GLOBAL_ACTION_HOME)
             BallAction.OpenSettings -> openSettings()
             is BallAction.LaunchApp -> launchShortcut(action.slot)
         }
+    }
+
+    /** 服务刚连接时还没有历史，此时给出可见反馈而不是静默失败。 */
+    private fun goForward() {
+        val intent = tracker?.forwardIntent()
+        if (intent == null) {
+            Toast.makeText(this, R.string.forward_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+        startActivitySafely(intent, getString(R.string.menu_forward))
     }
 
     private fun turnPage(forward: Boolean) {

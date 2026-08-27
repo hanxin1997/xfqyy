@@ -40,7 +40,8 @@ class SettingsActivity : Activity() {
         bindPageTurnMode()
         fillSliders(R.id.gesture_slider_container, gestureSliders())
         fillSliders(R.id.appearance_slider_container, appearanceSliders())
-        fillSwitches()
+        fillSwitches(R.id.page_turn_switch_container, pageTurnSwitches())
+        fillSwitches(R.id.switch_container, behaviorSwitches())
         renderShortcuts()
     }
 
@@ -135,18 +136,28 @@ class SettingsActivity : Activity() {
             override fun onStopTrackingTouch(bar: SeekBar) = notifyService()
         }
 
-    private fun fillSwitches() {
-        val container = findViewById<LinearLayout>(R.id.switch_container)
-        val specs = listOf(
-            SwitchSpec(R.string.switch_low_refresh, prefs.lowRefreshDrag) {
-                prefs.lowRefreshDrag = it
-            },
-            SwitchSpec(R.string.switch_keep_alive, prefs.keepAlive) {
-                prefs.keepAlive = it
-            }
-        )
+    private fun fillSwitches(containerId: Int, specs: List<SwitchSpec>) {
+        val container = findViewById<LinearLayout>(containerId)
         specs.forEach { container.addView(switchRow(container, it)) }
     }
+
+    private fun pageTurnSwitches(): List<SwitchSpec> = listOf(
+        SwitchSpec(R.string.switch_page_turn, prefs.pageTurnEnabled) {
+            prefs.pageTurnEnabled = it
+        }
+    )
+
+    private fun behaviorSwitches(): List<SwitchSpec> = listOf(
+        SwitchSpec(R.string.switch_hide_ball, prefs.ballHidden) {
+            prefs.ballHidden = it
+        },
+        SwitchSpec(R.string.switch_low_refresh, prefs.lowRefreshDrag) {
+            prefs.lowRefreshDrag = it
+        },
+        SwitchSpec(R.string.switch_keep_alive, prefs.keepAlive) {
+            prefs.keepAlive = it
+        }
+    )
 
     private fun switchRow(parent: ViewGroup, spec: SwitchSpec): View {
         val view = layoutInflater.inflate(R.layout.view_switch, parent, false) as Switch

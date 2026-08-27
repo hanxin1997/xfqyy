@@ -3,13 +3,16 @@
 
     <string name="app_name">墨水屏悬浮球</string>
     <string name="service_label">墨水屏悬浮球</string>
-    <string name="service_description">在任意应用上显示悬浮球，用于翻页、返回桌面与启动常用应用。只注入手势，不读取屏幕内容。</string>
+    <string name="service_description">在任意应用上显示悬浮球，用于返回、前进、返回桌面、翻页与启动常用应用。只注入手势并读取前台应用包名，不读取屏幕内容。</string>
 
+    <string name="menu_back">返回</string>
+    <string name="menu_forward">前进</string>
     <string name="menu_prev">上页</string>
     <string name="menu_next">下页</string>
     <string name="menu_home">桌面</string>
     <string name="menu_settings">设置</string>
 
+    <string name="forward_unavailable">还没有可回去的应用</string>
     <string name="launch_failed">无法启动 %1$s</string>
     <string name="overlay_failed">悬浮窗创建失败，请确认无障碍服务已开启</string>
 
@@ -17,7 +20,7 @@
     <string name="notification_title">墨水屏悬浮球运行中</string>
     <string name="notification_text">点击此通知返回桌面</string>
 
-    <string name="main_intro">悬浮球依赖无障碍服务注入翻页手势。按下面两步授权后，悬浮球会立即出现。</string>
+    <string name="main_intro">悬浮球依赖无障碍服务执行返回、前进与翻页。按下面两步授权后，悬浮球会立即出现。</string>
     <string name="status_accessibility">无障碍服务：%1$s</string>
     <string name="status_overlay">悬浮窗权限：%1$s</string>
     <string name="state_on">已开启</string>
@@ -27,11 +30,12 @@
     <string name="open_accessibility">打开无障碍设置</string>
     <string name="open_overlay">打开悬浮窗权限</string>
     <string name="open_settings">悬浮球设置</string>
-    <string name="usage_hint">用法：单击悬浮球展开竖直菜单，再次单击收起；按住拖动可换位置，松手自动吸附到屏幕边缘。</string>
+    <string name="usage_hint">用法：单击悬浮球展开竖直菜单，再次单击收起；按住拖动可换位置，松手自动吸附到屏幕边缘。「前进」会回到你刚才待过的那个应用，在应用里连按可在两个应用之间来回切换。</string>
     <string name="system_page_missing">系统未提供该设置页，请手动到系统设置中开启</string>
 
     <string name="settings_title">悬浮球设置</string>
     <string name="section_page_turn">翻页方式</string>
+    <string name="switch_page_turn">在菜单中显示上页/下页</string>
     <string name="mode_tap">点击屏幕左右区域</string>
     <string name="mode_swipe_horizontal">左右滑动</string>
     <string name="mode_swipe_vertical">上下滑动</string>
@@ -45,10 +49,11 @@
     <string name="slider_swipe_duration">滑动耗时</string>
 
     <string name="section_appearance">外观与行为</string>
-    <string name="appearance_hint">自动收起设为 0 秒表示不自动收起。</string>
+    <string name="appearance_hint">自动收起设为 0 秒表示不自动收起。隐藏悬浮球后，仍可从桌面图标回到本页重新打开。</string>
     <string name="slider_ball_size">悬浮球直径</string>
     <string name="slider_menu_size">菜单按钮尺寸</string>
     <string name="slider_auto_collapse">菜单自动收起</string>
+    <string name="switch_hide_ball">隐藏悬浮球（只保留通知回桌面）</string>
     <string name="switch_low_refresh">低刷新拖动（拖动时不重绘，松手落位）</string>
     <string name="switch_keep_alive">常驻通知（保活，点击通知返回桌面）</string>
 

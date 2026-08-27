@@ -138,3 +138,76 @@ xfqiu/
 4. ui 层（FloatBallView / MenuPanelView）
 5. 三个 Activity + 资源文件
 6. 推 CI 编译，按报错修正至绿
+
+---
+
+# 增补方案 A（2026-08-27）：全局隐藏 + 返回/前进
+
+> 状态：**待批准**。
+
+## A.1 需求变更（覆盖第 1 节）
+
+用户实际用法：阅读软件自带翻页，不需要注入翻页；真正需要的是**返回**、**前进（回到刚才那个应用）**、**返回桌面**。日常只用通知回桌面即可，因此悬浮球要能整体关掉。
+
+| 功能 | 变更 | 实现手段 |
+|---|---|---|
+| 返回 | **新增** | `performGlobalAction(GLOBAL_ACTION_BACK)` |
+| 前进 | **新增** | 记录前台应用历史，重新拉起目标应用 |
+| 上一页 / 下一页 | **保留，默认关闭** | 开关打开后才出现在菜单里 |
+| 返回桌面 | 不变 | `GLOBAL_ACTION_HOME` + 通知点击 |
+| 打开常用 app | 不变 | LAUNCHER Intent |
+| 全局隐藏悬浮球 | **新增** | 开关，只保留常驻通知 |
+
+第 1 节「明确不做：返回键、最近任务」作废——返回键改为明确要做；最近任务仍然不做。
+
+## A.2 「前进」的语义（Android 没有 Forward 全局动作）
+
+新增 `core/ForegroundTracker.kt`，靠已声明的 `typeWindowStateChanged` 事件记录三个字段：
+
+- `foreground`：最近一次窗口变化的包名（可能是系统 UI、输入法等不可启动的包）
+- `currentApp` / `previousApp`：最近两个**可启动**应用（有 LAUNCHER 入口）
+
+前进目标：`foreground == currentApp ? previousApp : currentApp`。
+
+推导出的行为：
+
+| 场景 | 结果 |
+|---|---|
+| 阅读软件 → 回桌面 → 前进 | 回到阅读软件（桌面通常没有 LAUNCHER 入口，不进历史，靠 `foreground != currentApp` 判定） |
+| 阅读软件 → 浏览器 → 前进 | 回到阅读软件 |
+| 再按一次前进 | 回到浏览器，形成两应用来回切 |
+| 刚开机没有历史 | Toast 提示 `forward_unavailable` |
+
+自身包名一律不记录，打开设置页不会污染历史。`notificationTimeout` 由 500ms 降到 100ms，避免快速切换被事件合并吞掉中间状态。
+
+## A.3 改动清单
+
+| 文件 | 改动 |
+|---|---|
+| `core/ForegroundTracker.kt` | **新增**，见 A.2 |
+| `core/BallAction.kt` | 新增 `Back` / `Forward` 两个 object |
+| `core/Prefs.kt` | 新增 `ballHidden`（默认 false）、`pageTurnEnabled`（默认 **false**） |
+| `service/FloatBallService.kt` | `onAccessibilityEvent` 喂 tracker；`execute` 加两个分支；`goForward()`；`teardown` 清 tracker |
+| `service/OverlayController.kt` | `show()` 在 `ballHidden` 时直接返回；`reload()` 去掉 `!attached` 早退（否则关掉隐藏后无法恢复显示）；`keepOpenActions` 加入 `Back`（连按返回不必反复展开收起，墨水屏少刷几次） |
+| `ui/MenuPanelView.kt` | 菜单项改为 返回/前进/[上页/下页]/桌面/常用 app/设置 |
+| `SettingsActivity.kt` | `fillSwitches` 改为与 `fillSliders` 同形的 `(containerId, specs)`；翻页卡片顶部加「显示翻页按钮」开关，外观卡片加「隐藏悬浮球」开关 |
+| `res/layout/activity_settings.xml` | 翻页卡片新增空容器 `page_turn_switch_container` |
+| `res/values/strings.xml` | 新增 `menu_back`/`menu_forward`/`forward_unavailable`/`switch_hide_ball`/`switch_page_turn`；改写 `service_description`、`usage_hint` |
+| `res/xml/accessibility_config.xml` | `notificationTimeout` 500→100，注释说明用途 |
+
+`AndroidManifest.xml` 不需要改：`QUERY_ALL_PACKAGES` + `<queries>` MAIN/LAUNCHER 已经满足 `getLaunchIntentForPackage` 的包可见性要求。
+
+## A.4 下游完整性
+
+`BallAction` 是 sealed class，`FloatBallService.execute` 的 `when` 是穷尽式——不加分支直接编译失败，不存在漏改。全部引用点已确认只有 3 处：`FloatBallService:75-79`、`OverlayController:239`、`MenuPanelView:56-75`。
+
+## A.5 设置入口不依赖悬浮球
+
+已经满足，无需改动：桌面图标 → `MainActivity` → 「悬浮球设置」按钮。悬浮球隐藏后设置页依然可达。
+
+## A.6 风险
+
+1. **隐藏悬浮球后，返回/前进就没有入口了**——通知按你的选择只保留「点击回桌面」。要用返回/前进需先在设置里关掉隐藏。
+2. 「前进」依赖前台应用历史，服务被 ROM 杀掉重连后历史清空，第一次按会提示无目标。
+3. 少数 ROM 的桌面带 LAUNCHER 入口（会被当成普通应用记入历史），此时「阅读软件→回桌面→前进」仍然正确（`foreground == currentApp` 走 `previousApp`），行为一致。
+4. `GLOBAL_ACTION_BACK` 在个别深度定制 ROM 上会被拦截，无法规避。

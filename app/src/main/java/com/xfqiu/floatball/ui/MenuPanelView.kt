@@ -53,8 +53,12 @@ class MenuPanelView(
 
     private fun buildItems() {
         removeAllViews()
-        addTextItem(R.string.menu_prev, BallAction.PrevPage)
-        addTextItem(R.string.menu_next, BallAction.NextPage)
+        addTextItem(R.string.menu_back, BallAction.Back)
+        addTextItem(R.string.menu_forward, BallAction.Forward)
+        if (prefs.pageTurnEnabled) {
+            addTextItem(R.string.menu_prev, BallAction.PrevPage)
+            addTextItem(R.string.menu_next, BallAction.NextPage)
+        }
         addTextItem(R.string.menu_home, BallAction.Home)
         prefs.shortcuts.forEachIndexed { slot, shortcut -> addAppItem(shortcut, slot) }
         addTextItem(R.string.menu_settings, BallAction.OpenSettings)

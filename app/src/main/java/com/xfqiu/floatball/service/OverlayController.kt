@@ -61,6 +61,7 @@ class OverlayController(
     fun show() {
         if (attached) return
         prefs = Prefs.of(context)
+        if (prefs.ballHidden) return
         ensureInitialPosition()
         buildViews()
         configureParams()
@@ -77,9 +78,11 @@ class OverlayController(
         expanded = false
     }
 
-    /** 设置项变更后整体重建，避免逐项同步时漏掉某个尺寸或快捷项。 */
+    /**
+     * 设置项变更后整体重建，避免逐项同步时漏掉某个尺寸或快捷项。
+     * 不能因为当前未显示就早退——隐藏开关关掉时正是要从未显示恢复成显示。
+     */
     fun reload() {
-        if (!attached) return
         hide()
         show()
     }
@@ -234,10 +237,9 @@ class OverlayController(
         updateLayout()
     }
 
-    /** 翻页保持菜单展开以便连续操作；其余动作都会切走前台，先收起。 */
+    /** 翻页和返回都可能连按，保持菜单展开可以少刷几次屏；其余动作会切走前台，先收起。 */
     private fun dispatchAction(action: BallAction) {
-        val keepOpen = action == BallAction.PrevPage || action == BallAction.NextPage
-        if (!keepOpen) collapse()
+        if (action !in KEEP_OPEN_ACTIONS) collapse()
         onAction(action)
     }
 
@@ -287,5 +289,6 @@ class OverlayController(
         const val BASE_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
         const val FLAG_THROUGH = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        val KEEP_OPEN_ACTIONS = setOf(BallAction.Back, BallAction.PrevPage, BallAction.NextPage)
     }
 }

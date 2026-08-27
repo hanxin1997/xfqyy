@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 滑块与开关由 SettingsActivity 按 spec 列表注入到三个空容器中 -->
+<!-- 滑块与开关由 SettingsActivity 按 spec 列表注入到下面各个空容器中 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,6 +16,12 @@
             <TextView
                 style="@style/InkSection"
                 android:text="@string/section_page_turn" />
+
+            <LinearLayout
+                android:id="@+id/page_turn_switch_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
 
             <RadioGroup
                 android:id="@+id/page_turn_group"

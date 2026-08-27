@@ -32,6 +32,16 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         get() = PageTurnMode.fromKey(sp.getString(KEY_PAGE_TURN_MODE, null))
         set(value) = sp.edit().putString(KEY_PAGE_TURN_MODE, value.storageKey).apply()
 
+    /** 菜单中是否显示上页/下页。默认关闭：多数阅读软件自带翻页，不需要注入手势。 */
+    var pageTurnEnabled: Boolean
+        get() = sp.getBoolean(KEY_PAGE_TURN_ENABLED, false)
+        set(value) = sp.edit().putBoolean(KEY_PAGE_TURN_ENABLED, value).apply()
+
+    /** 全局隐藏悬浮球，只留常驻通知点击回桌面。设置页仍可从桌面图标进入。 */
+    var ballHidden: Boolean
+        get() = sp.getBoolean(KEY_BALL_HIDDEN, false)
+        set(value) = sp.edit().putBoolean(KEY_BALL_HIDDEN, value).apply()
+
     /** 上一页点击点的横向位置，屏幕宽度百分比。 */
     var prevTapXPercent: Int
         get() = sp.getInt(KEY_PREV_TAP_X, PREV_TAP_X_DEFAULT)
@@ -130,6 +140,8 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         private const val KEY_BALL_SIZE = "ball_size_dp"
         private const val KEY_MENU_ITEM_SIZE = "menu_item_size_dp"
         private const val KEY_PAGE_TURN_MODE = "page_turn_mode"
+        private const val KEY_PAGE_TURN_ENABLED = "page_turn_enabled"
+        private const val KEY_BALL_HIDDEN = "ball_hidden"
         private const val KEY_PREV_TAP_X = "prev_tap_x"
         private const val KEY_NEXT_TAP_X = "next_tap_x"
         private const val KEY_TAP_Y = "tap_y"
