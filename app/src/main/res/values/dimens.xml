@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="gap_small">4dp</dimen>
+    <dimen name="gap">8dp</dimen>
+    <dimen name="gap_large">16dp</dimen>
+    <dimen name="card_padding">12dp</dimen>
+    <dimen name="row_min_height">48dp</dimen>
+    <dimen name="icon_small">32dp</dimen>
+    <dimen name="icon_large">40dp</dimen>
+    <dimen name="stroke_normal">1dp</dimen>
+    <dimen name="stroke_pressed">3dp</dimen>
+    <dimen name="text_section">17sp</dimen>
+    <dimen name="text_body">15sp</dimen>
+    <dimen name="text_hint">13sp</dimen>
+</resources>

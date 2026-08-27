@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 26+ 用自适应图标；API 24/25 自动回退到 drawable/ic_launcher.xml。
+  两份资源同名，manifest 里仍然只引用 @drawable/ic_launcher。
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>

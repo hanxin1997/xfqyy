@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 墨水屏只有纯黑与纯白可靠可辨，灰度仅用于「禁用」和按压反馈 -->
+<resources>
+    <color name="ink_black">#FF000000</color>
+    <color name="ink_white">#FFFFFFFF</color>
+    <color name="ink_gray">#FF808080</color>
+    <color name="ink_press">#33000000</color>
+</resources>

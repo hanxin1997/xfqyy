@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">墨水屏悬浮球</string>
+    <string name="service_label">墨水屏悬浮球</string>
+    <string name="service_description">在任意应用上显示悬浮球，用于翻页、返回桌面与启动常用应用。只注入手势，不读取屏幕内容。</string>
+
+    <string name="menu_prev">上页</string>
+    <string name="menu_next">下页</string>
+    <string name="menu_home">桌面</string>
+    <string name="menu_settings">设置</string>
+
+    <string name="launch_failed">无法启动 %1$s</string>
+    <string name="overlay_failed">悬浮窗创建失败，请确认无障碍服务已开启</string>
+
+    <string name="notification_channel">悬浮球常驻</string>
+    <string name="notification_title">墨水屏悬浮球运行中</string>
+    <string name="notification_text">点击此通知返回桌面</string>
+
+    <string name="main_intro">悬浮球依赖无障碍服务注入翻页手势。按下面两步授权后，悬浮球会立即出现。</string>
+    <string name="status_accessibility">无障碍服务：%1$s</string>
+    <string name="status_overlay">悬浮窗权限：%1$s</string>
+    <string name="state_on">已开启</string>
+    <string name="state_off">未开启</string>
+    <string name="accessibility_hint">必需。在系统列表中找到「墨水屏悬浮球」并开启。</string>
+    <string name="overlay_hint">建议开启。用于从悬浮球启动其他应用，也是无障碍覆盖层不可用时的兜底显示方式。</string>
+    <string name="open_accessibility">打开无障碍设置</string>
+    <string name="open_overlay">打开悬浮窗权限</string>
+    <string name="open_settings">悬浮球设置</string>
+    <string name="usage_hint">用法：单击悬浮球展开竖直菜单，再次单击收起；按住拖动可换位置，松手自动吸附到屏幕边缘。</string>
+    <string name="system_page_missing">系统未提供该设置页，请手动到系统设置中开启</string>
+
+    <string name="settings_title">悬浮球设置</string>
+    <string name="section_page_turn">翻页方式</string>
+    <string name="mode_tap">点击屏幕左右区域</string>
+    <string name="mode_swipe_horizontal">左右滑动</string>
+    <string name="mode_swipe_vertical">上下滑动</string>
+
+    <string name="section_gesture">手势参数</string>
+    <string name="gesture_hint">坐标为屏幕百分比。翻页无效多半是阅读软件的触摸区域与这里不一致，调整后重试。</string>
+    <string name="slider_prev_x">上一页点击横向位置</string>
+    <string name="slider_next_x">下一页点击横向位置</string>
+    <string name="slider_tap_y">点击纵向位置</string>
+    <string name="slider_swipe_distance">滑动距离</string>
+    <string name="slider_swipe_duration">滑动耗时</string>
+
+    <string name="section_appearance">外观与行为</string>
+    <string name="appearance_hint">自动收起设为 0 秒表示不自动收起。</string>
+    <string name="slider_ball_size">悬浮球直径</string>
+    <string name="slider_menu_size">菜单按钮尺寸</string>
+    <string name="slider_auto_collapse">菜单自动收起</string>
+    <string name="switch_low_refresh">低刷新拖动（拖动时不重绘，松手落位）</string>
+    <string name="switch_keep_alive">常驻通知（保活，点击通知返回桌面）</string>
+
+    <string name="section_shortcut">常用应用</string>
+    <string name="shortcut_hint">按添加顺序显示在菜单中。达到上限后添加按钮会置灰。</string>
+    <string name="add_shortcut">添加应用</string>
+    <string name="shortcut_remove">移除</string>
+    <string name="shortcut_duplicated">该应用已在列表中</string>
+
+    <string name="app_picker_title">选择应用</string>
+    <string name="app_list_loading">正在读取应用列表…</string>
+    <string name="app_list_empty">没有可启动的应用</string>
+
+    <string name="unit_percent">%1$d%%</string>
+    <string name="unit_ms">%1$d 毫秒</string>
+    <string name="unit_dp">%1$d dp</string>
+    <string name="unit_second">%1$d 秒</string>
+
+</resources>

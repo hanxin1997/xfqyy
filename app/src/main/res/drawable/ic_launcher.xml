@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 纯黑白图标，缩到最小尺寸仍可辨认 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <path
+        android:fillColor="@color/ink_white"
+        android:pathData="M0,0h48v48h-48z" />
+
+    <path
+        android:fillColor="@color/ink_black"
+        android:pathData="M3,24a21,21 0 1,0 42,0a21,21 0 1,0 -42,0" />
+
+    <path
+        android:fillColor="@color/ink_white"
+        android:pathData="M18,16L9,24l9,8z" />
+
+    <path
+        android:fillColor="@color/ink_white"
+        android:pathData="M30,16l9,8l-9,8z" />
+
+</vector>

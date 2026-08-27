@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 白底黑字的标题栏靠底部一条黑线与内容区分开 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/ink_black" />
+    <item android:bottom="@dimen/stroke_normal">
+        <color android:color="@color/ink_white" />
+    </item>
+</layer-list>

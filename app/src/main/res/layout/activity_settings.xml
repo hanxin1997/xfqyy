@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 滑块与开关由 SettingsActivity 按 spec 列表注入到三个空容器中 -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ink_white"
+    android:padding="@dimen/gap_large">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout style="@style/InkCard">
+
+            <TextView
+                style="@style/InkSection"
+                android:text="@string/section_page_turn" />
+
+            <RadioGroup
+                android:id="@+id/page_turn_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/mode_tap"
+                    style="@style/InkRadio"
+                    android:text="@string/mode_tap" />
+
+                <RadioButton
+                    android:id="@+id/mode_swipe_horizontal"
+                    style="@style/InkRadio"
+                    android:text="@string/mode_swipe_horizontal" />
+
+                <RadioButton
+                    android:id="@+id/mode_swipe_vertical"
+                    style="@style/InkRadio"
+                    android:text="@string/mode_swipe_vertical" />
+
+            </RadioGroup>
+
+        </LinearLayout>
+
+        <LinearLayout style="@style/InkCard">
+
+            <TextView
+                style="@style/InkSection"
+                android:text="@string/section_gesture" />
+
+            <TextView
+                style="@style/InkHint"
+                android:text="@string/gesture_hint" />
+
+            <LinearLayout
+                android:id="@+id/gesture_slider_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+
+        <LinearLayout style="@style/InkCard">
+
+            <TextView
+                style="@style/InkSection"
+                android:text="@string/section_appearance" />
+
+            <TextView
+                style="@style/InkHint"
+                android:text="@string/appearance_hint" />
+
+            <LinearLayout
+                android:id="@+id/appearance_slider_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <LinearLayout
+                android:id="@+id/switch_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+
+        <LinearLayout style="@style/InkCard">
+
+            <TextView
+                style="@style/InkSection"
+                android:text="@string/section_shortcut" />
+
+            <TextView
+                style="@style/InkHint"
+                android:text="@string/shortcut_hint" />
+
+            <LinearLayout
+                android:id="@+id/shortcut_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/add_shortcut"
+                style="@style/InkButton"
+                android:text="@string/add_shortcut" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

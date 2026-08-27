@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  菜单按钮与普通按钮共用同一套背景。
+  按压态只加粗描边，不做反色或 Ripple：墨水屏上任何色块翻转都要整块重绘。
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/ink_white" />
+            <stroke
+                android:width="@dimen/stroke_pressed"
+                android:color="@color/ink_black" />
+        </shape>
+    </item>
+
+    <item android:state_enabled="false">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/ink_white" />
+            <stroke
+                android:width="@dimen/stroke_normal"
+                android:color="@color/ink_gray" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/ink_white" />
+            <stroke
+                android:width="@dimen/stroke_normal"
+                android:color="@color/ink_black" />
+        </shape>
+    </item>
+
+</selector>

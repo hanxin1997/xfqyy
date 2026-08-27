@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 根节点必须是 Switch：SettingsActivity 直接把 inflate 结果强转为 Switch -->
+<Switch xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="@dimen/row_min_height"
+    android:paddingBottom="@dimen/gap_small"
+    android:paddingTop="@dimen/gap_small"
+    android:switchPadding="@dimen/gap"
+    android:textColor="@color/ink_black"
+    android:textSize="@dimen/text_body" />

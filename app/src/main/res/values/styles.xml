@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      墨水屏主题：所有强调色压成纯黑，窗口动画全部去掉。
+      动画在电子墨水上表现为一连串残影，只会拖慢响应。
+    -->
+    <style name="InkTheme" parent="@android:style/Theme.Material.Light">
+        <item name="android:colorAccent">@color/ink_black</item>
+        <item name="android:colorPrimary">@color/ink_white</item>
+        <item name="android:colorPrimaryDark">@color/ink_white</item>
+        <item name="android:colorControlNormal">@color/ink_black</item>
+        <item name="android:colorControlActivated">@color/ink_black</item>
+        <item name="android:colorControlHighlight">@color/ink_press</item>
+        <item name="android:textColorPrimary">@color/ink_black</item>
+        <item name="android:textColorSecondary">@color/ink_black</item>
+        <item name="android:windowBackground">@color/ink_white</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:actionBarStyle">@style/InkActionBar</item>
+    </style>
+
+    <style name="InkActionBar" parent="@android:style/Widget.Material.Light.ActionBar.Solid">
+        <item name="android:background">@drawable/bg_action_bar</item>
+        <item name="android:titleTextStyle">@style/InkActionBarTitle</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+
+    <style name="InkActionBarTitle" parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/ink_black</item>
+    </style>
+
+    <style name="InkCard">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">@dimen/gap_large</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:background">@drawable/bg_card</item>
+        <item name="android:padding">@dimen/card_padding</item>
+    </style>
+
+    <style name="InkSection">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">@dimen/text_section</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/ink_black</item>
+        <item name="android:paddingBottom">@dimen/gap</item>
+    </style>
+
+    <style name="InkHint">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">@dimen/text_hint</item>
+        <item name="android:textColor">@color/ink_black</item>
+        <item name="android:paddingBottom">@dimen/gap</item>
+    </style>
+
+    <!-- 按压反馈用加粗描边而不是反色，避免整块区域重绘 -->
+    <style name="InkButton" parent="@android:style/Widget.Material.Light.Button.Borderless">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">@dimen/row_min_height</item>
+        <item name="android:background">@drawable/bg_ink_cell</item>
+        <item name="android:textColor">@color/ink_button_text</item>
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="InkRadio">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">@dimen/row_min_height</item>
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/ink_black</item>
+    </style>
+
+</resources>

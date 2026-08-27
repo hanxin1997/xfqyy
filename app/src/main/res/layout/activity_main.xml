@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ink_white"
+    android:padding="@dimen/gap_large">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="@dimen/gap_large"
+            android:text="@string/main_intro"
+            android:textColor="@color/ink_black"
+            android:textSize="@dimen/text_body" />
+
+        <LinearLayout style="@style/InkCard">
+
+            <TextView
+                android:id="@+id/accessibility_status"
+                style="@style/InkSection" />
+
+            <TextView
+                style="@style/InkHint"
+                android:text="@string/accessibility_hint" />
+
+            <Button
+                android:id="@+id/open_accessibility"
+                style="@style/InkButton"
+                android:text="@string/open_accessibility" />
+
+        </LinearLayout>
+
+        <LinearLayout style="@style/InkCard">
+
+            <TextView
+                android:id="@+id/overlay_status"
+                style="@style/InkSection" />
+
+            <TextView
+                style="@style/InkHint"
+                android:text="@string/overlay_hint" />
+
+            <Button
+                android:id="@+id/open_overlay"
+                style="@style/InkButton"
+                android:text="@string/open_overlay" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/open_settings"
+            style="@style/InkButton"
+            android:text="@string/open_settings" />
+
+        <TextView
+            style="@style/InkHint"
+            android:paddingTop="@dimen/gap_large"
+            android:text="@string/usage_hint" />
+
+    </LinearLayout>
+
+</ScrollView>

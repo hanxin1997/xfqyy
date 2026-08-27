@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  自适应图标前景层。图形全部收在中央 66x66 的安全区内，
+  任何形状的遮罩都不会切掉箭头。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="@color/ink_black"
+        android:pathData="M21,54a33,33 0 1,0 66,0a33,33 0 1,0 -66,0" />
+
+    <path
+        android:fillColor="@color/ink_white"
+        android:pathData="M50,41L36,54l14,13z" />
+
+    <path
+        android:fillColor="@color/ink_white"
+        android:pathData="M58,41l14,13l-14,13z" />
+
+</vector>
