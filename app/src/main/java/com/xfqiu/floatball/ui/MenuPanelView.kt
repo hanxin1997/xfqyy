@@ -89,7 +89,7 @@ class MenuPanelView(
         scaleType = ImageView.ScaleType.FIT_CENTER
         val padding = (itemSizePx * ICON_PADDING_RATIO).toInt()
         setPadding(padding, padding, padding, padding)
-        setBackgroundResource(R.drawable.bg_menu_item)
+        setBackgroundResource(R.drawable.bg_ink_cell)
     }
 
     private fun attachItem(view: View, action: BallAction) {
