@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- 悬浮窗兜底类型使用，同时为 Android 10+ 从后台启动其他 app 提供豁免 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -12,7 +13,9 @@
     <!-- 墨水屏需要持续悬浮交互，允许直接请求退出 Doze 优化 -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- targetSdk 30 起需要显式声明才能列出并启动其他应用 -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <queries>
         <!-- 电纸书可能隐藏入口，但系统设置/安全中心/省电组件仍可由显式 Intent 打开 -->
