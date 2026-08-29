@@ -2,7 +2,9 @@ package com.xfqiu.floatball
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -13,10 +15,13 @@ import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import com.xfqiu.floatball.core.AppShortcut
+import com.xfqiu.floatball.core.OverlayMode
+import com.xfqiu.floatball.core.OverlayModePolicy
 import com.xfqiu.floatball.core.PageTurnMode
 import com.xfqiu.floatball.core.Prefs
 import com.xfqiu.floatball.core.loadShortcutIcon
 import com.xfqiu.floatball.service.FloatBallService
+import com.xfqiu.floatball.service.KeepAliveService
 
 /**
  * 参数设置。滑块与开关全部由代码按 spec 列表生成，
@@ -29,6 +34,9 @@ class SettingsActivity : Activity() {
     private lateinit var prefs: Prefs
     private lateinit var shortcutContainer: LinearLayout
     private lateinit var addShortcutButton: View
+    private lateinit var overlayModeGroup: RadioGroup
+    private var suppressOverlayModeCallback = false
+    private var lastOverlayPermission = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,11 +46,22 @@ class SettingsActivity : Activity() {
         addShortcutButton = findViewById(R.id.add_shortcut)
         addShortcutButton.setOnClickListener { pickApp() }
         bindPageTurnMode()
+        bindOverlayMode()
         fillSliders(R.id.gesture_slider_container, gestureSliders())
         fillSliders(R.id.appearance_slider_container, appearanceSliders())
         fillSwitches(R.id.page_turn_switch_container, pageTurnSwitches())
         fillSwitches(R.id.switch_container, behaviorSwitches())
         renderShortcuts()
+        lastOverlayPermission = Settings.canDrawOverlays(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!::prefs.isInitialized) return
+        val currentPermission = Settings.canDrawOverlays(this)
+        val pendingResolved = reconcilePendingOverlayMode(currentPermission)
+        if (pendingResolved || currentPermission != lastOverlayPermission) notifyService()
+        lastOverlayPermission = currentPermission
     }
 
     private fun bindPageTurnMode() {
@@ -64,6 +83,74 @@ class SettingsActivity : Activity() {
         R.id.mode_swipe_horizontal -> PageTurnMode.SWIPE_HORIZONTAL
         R.id.mode_swipe_vertical -> PageTurnMode.SWIPE_VERTICAL
         else -> PageTurnMode.TAP
+    }
+
+    private fun bindOverlayMode() {
+        overlayModeGroup = findViewById(R.id.overlay_mode_group)
+        setOverlayModeChecked(prefs.overlayMode)
+        overlayModeGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (suppressOverlayModeCallback) return@setOnCheckedChangeListener
+            val requested = overlayModeOf(checkedId)
+            val decision = OverlayModePolicy.selection(
+                requested,
+                Settings.canDrawOverlays(this)
+            )
+            if (decision.requestPermission) {
+                // 先保留当前可用窗口；授权成功返回后才提交 APPLICATION。
+                prefs.pendingOverlayMode = requested
+                setOverlayModeChecked(prefs.overlayMode)
+                if (!openOverlayPermission()) prefs.pendingOverlayMode = null
+                return@setOnCheckedChangeListener
+            }
+            prefs.pendingOverlayMode = null
+            prefs.overlayMode = decision.modeToApply ?: return@setOnCheckedChangeListener
+            notifyService()
+        }
+    }
+
+    private fun reconcilePendingOverlayMode(canDrawOverlays: Boolean): Boolean {
+        val pending = prefs.pendingOverlayMode ?: return false
+        prefs.pendingOverlayMode = null
+        if (pending == OverlayMode.APPLICATION && !canDrawOverlays) {
+            setOverlayModeChecked(prefs.overlayMode)
+            Toast.makeText(this, R.string.overlay_mode_permission_denied, Toast.LENGTH_LONG).show()
+            return false
+        }
+        prefs.overlayMode = pending
+        setOverlayModeChecked(pending)
+        return true
+    }
+
+    private fun setOverlayModeChecked(mode: OverlayMode) {
+        suppressOverlayModeCallback = true
+        overlayModeGroup.check(radioIdOf(mode))
+        suppressOverlayModeCallback = false
+    }
+
+    private fun radioIdOf(mode: OverlayMode): Int = when (mode) {
+        OverlayMode.AUTO -> R.id.overlay_mode_auto
+        OverlayMode.ACCESSIBILITY -> R.id.overlay_mode_accessibility
+        OverlayMode.APPLICATION -> R.id.overlay_mode_application
+    }
+
+    private fun overlayModeOf(radioId: Int): OverlayMode = when (radioId) {
+        R.id.overlay_mode_accessibility -> OverlayMode.ACCESSIBILITY
+        R.id.overlay_mode_application -> OverlayMode.APPLICATION
+        else -> OverlayMode.AUTO
+    }
+
+    private fun openOverlayPermission(): Boolean {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        return try {
+            startActivity(intent)
+            true
+        } catch (error: RuntimeException) {
+            Toast.makeText(this, R.string.system_page_missing, Toast.LENGTH_LONG).show()
+            false
+        }
     }
 
     private fun gestureSliders(): List<SliderSpec> = listOf(
@@ -98,6 +185,10 @@ class SettingsActivity : Activity() {
             R.string.slider_menu_size, R.string.unit_dp,
             Prefs.MENU_ITEM_MIN_DP, Prefs.MENU_ITEM_MAX_DP, prefs.menuItemSizeDp
         ) { prefs.menuItemSizeDp = it },
+        SliderSpec(
+            R.string.slider_edge_margin, R.string.unit_dp,
+            Prefs.EDGE_MARGIN_MIN_DP, Prefs.EDGE_MARGIN_MAX_DP, prefs.edgeMarginDp
+        ) { prefs.edgeMarginDp = it },
         SliderSpec(
             R.string.slider_auto_collapse, R.string.unit_second,
             Prefs.AUTO_COLLAPSE_MIN_SEC, Prefs.AUTO_COLLAPSE_MAX_SEC, prefs.autoCollapseSeconds
@@ -156,6 +247,9 @@ class SettingsActivity : Activity() {
         },
         SwitchSpec(R.string.switch_keep_alive, prefs.keepAlive) {
             prefs.keepAlive = it
+            if (!KeepAliveService.sync(applicationContext, it)) {
+                Toast.makeText(this, R.string.keep_alive_start_failed, Toast.LENGTH_LONG).show()
+            }
         }
     )
 

@@ -15,14 +15,20 @@
     <string name="forward_unavailable">还没有可回去的应用</string>
     <string name="launch_failed">无法启动 %1$s</string>
     <string name="overlay_failed">悬浮窗创建失败，请确认无障碍服务已开启</string>
+    <string name="overlay_permission_required">普通悬浮窗模式需要先授予悬浮窗权限</string>
+    <string name="float_ball_description">墨水屏悬浮菜单</string>
 
     <string name="notification_channel">悬浮球常驻</string>
     <string name="notification_title">墨水屏悬浮球运行中</string>
     <string name="notification_text">点击此通知返回桌面</string>
 
-    <string name="main_intro">悬浮球依赖无障碍服务执行返回、前进与翻页。按下面两步授权后，悬浮球会立即出现。</string>
+    <string name="main_intro">本应用只为墨水屏电纸书设计。请完成无障碍、悬浮窗和后台运行授权；悬浮球会避开侧边系统触控区，并以低频刷新减少残影。</string>
     <string name="status_accessibility">无障碍服务：%1$s</string>
+    <string name="status_service_connected">无障碍服务实际连接：%1$s</string>
     <string name="status_overlay">悬浮窗权限：%1$s</string>
+    <string name="status_battery_unrestricted">系统电池优化豁免：%1$s</string>
+    <string name="status_keep_alive_running">保活服务实际运行：%1$s</string>
+    <string name="status_notification">常驻通知权限及渠道：%1$s</string>
     <string name="state_on">已开启</string>
     <string name="state_off">未开启</string>
     <string name="accessibility_hint">必需。在系统列表中找到「墨水屏悬浮球」并开启。</string>
@@ -30,8 +36,19 @@
     <string name="open_accessibility">打开无障碍设置</string>
     <string name="open_overlay">打开悬浮窗权限</string>
     <string name="open_settings">悬浮球设置</string>
-    <string name="usage_hint">用法：单击悬浮球展开竖直菜单，再次单击收起；按住拖动可换位置，松手自动吸附到屏幕边缘。「前进」会回到你刚才待过的那个应用，在应用里连按可在两个应用之间来回切换。</string>
+    <string name="usage_hint">用法：单击悬浮球展开竖直菜单；按住拖动可换位置，松手吸附到安全边缘。低刷新模式拖动时约每 240 毫秒更新一次，属于正常的墨水屏防残影行为。</string>
     <string name="system_page_missing">系统未提供该设置页，请手动到系统设置中开启</string>
+
+    <string name="background_section">后台运行授权（电纸书必做）</string>
+    <string name="background_hint">先完成 Android 原生电池优化豁免，再尝试设备隐藏的自启动组件。设备接近原生系统也能使用；私有组件不会按品牌预先过滤。</string>
+    <string name="background_guide_title">需要后台运行授权</string>
+    <string name="background_guide_message">“一键开始”会先调出 Android 原生电池优化豁免；返回后再直接尝试系统中被隐藏的厂商自启动组件。两项都完成后，加速清理和重启后的恢复概率最高。</string>
+    <string name="start_background_setup">一键开始后台授权</string>
+    <string name="open_autostart">尝试隐藏的自启动管理</string>
+    <string name="open_battery_policy">打开厂商省电策略</string>
+    <string name="open_app_details">打开原生应用详情</string>
+    <string name="open_notifications">打开通知设置</string>
+    <string name="guide_later">稍后</string>
 
     <string name="settings_title">悬浮球设置</string>
     <string name="section_page_turn">翻页方式</string>
@@ -49,13 +66,21 @@
     <string name="slider_swipe_duration">滑动耗时</string>
 
     <string name="section_appearance">外观与行为</string>
-    <string name="appearance_hint">自动收起设为 0 秒表示不自动收起。隐藏悬浮球后，仍可从桌面图标回到本页重新打开。</string>
+    <string name="appearance_hint">全部参数以墨水屏为默认。边缘距离用于避让电纸书侧边翻页/返回区；隐藏悬浮球后仍可从桌面图标重新打开。</string>
+    <string name="overlay_mode_title">悬浮窗兼容模式</string>
+    <string name="overlay_mode_hint">若球能显示但完全点不动，请选“普通悬浮窗”；该模式需要上方引导页里的悬浮窗权限。</string>
+    <string name="overlay_mode_auto">自动（优先普通悬浮窗）</string>
+    <string name="overlay_mode_accessibility">仅无障碍覆盖层</string>
+    <string name="overlay_mode_application">普通悬浮窗（电纸书兼容）</string>
+    <string name="overlay_mode_permission_denied">未授予普通悬浮窗权限，已保留原来的可用模式</string>
     <string name="slider_ball_size">悬浮球直径</string>
     <string name="slider_menu_size">菜单按钮尺寸</string>
+    <string name="slider_edge_margin">离屏幕边缘距离</string>
     <string name="slider_auto_collapse">菜单自动收起</string>
     <string name="switch_hide_ball">隐藏悬浮球（只保留通知回桌面）</string>
-    <string name="switch_low_refresh">低刷新拖动（拖动时不重绘，松手落位）</string>
+    <string name="switch_low_refresh">墨水屏低刷新拖动（低频反馈，减少残影）</string>
     <string name="switch_keep_alive">常驻通知（保活，点击通知返回桌面）</string>
+    <string name="keep_alive_start_failed">系统拒绝启动常驻服务，请检查后台运行授权</string>
 
     <string name="section_shortcut">常用应用</string>
     <string name="shortcut_hint">按添加顺序显示在菜单中。达到上限后添加按钮会置灰。</string>

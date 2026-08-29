@@ -76,6 +76,37 @@
                 style="@style/InkHint"
                 android:text="@string/appearance_hint" />
 
+            <TextView
+                style="@style/InkSection"
+                android:text="@string/overlay_mode_title" />
+
+            <TextView
+                style="@style/InkHint"
+                android:text="@string/overlay_mode_hint" />
+
+            <RadioGroup
+                android:id="@+id/overlay_mode_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/overlay_mode_auto"
+                    style="@style/InkRadio"
+                    android:text="@string/overlay_mode_auto" />
+
+                <RadioButton
+                    android:id="@+id/overlay_mode_accessibility"
+                    style="@style/InkRadio"
+                    android:text="@string/overlay_mode_accessibility" />
+
+                <RadioButton
+                    android:id="@+id/overlay_mode_application"
+                    style="@style/InkRadio"
+                    android:text="@string/overlay_mode_application" />
+
+            </RadioGroup>
+
             <LinearLayout
                 android:id="@+id/appearance_slider_container"
                 android:layout_width="match_parent"

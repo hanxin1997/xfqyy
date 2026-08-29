@@ -1,15 +1,21 @@
 package com.xfqiu.floatball.ui
 
 import android.annotation.SuppressLint
+import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
+import android.os.Build
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import kotlin.math.hypot
+import com.xfqiu.floatball.R
+import com.xfqiu.floatball.core.FloatBallGestureClassifier
+import com.xfqiu.floatball.core.GestureDecision
+import com.xfqiu.floatball.core.dpToPx
 
 /**
  * 折叠态悬浮球。纯 Canvas 绘制，无图片资源、无动画、无阴影。
@@ -29,6 +35,9 @@ class FloatBallView(context: Context) : View(context) {
 
     var onDragEnd: (() -> Unit)? = null
 
+    /** ROM 抢占侧边触摸或出现多指时恢复原位，不得当作一次成功拖动。 */
+    var onDragCancel: (() -> Unit)? = null
+
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         color = Color.WHITE
@@ -45,12 +54,19 @@ class FloatBallView(context: Context) : View(context) {
     }
 
     private val iconPath = Path()
-    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private val touchSlop = maxOf(
+        ViewConfiguration.get(context).scaledTouchSlop,
+        context.dpToPx(E_INK_MIN_TOUCH_SLOP_DP)
+    )
+    private val classifier = FloatBallGestureClassifier(touchSlop.toFloat())
 
     private var pressedVisual = false
-    private var dragging = false
-    private var downRawX = 0f
-    private var downRawY = 0f
+    private var activePointerId = INVALID_POINTER_ID
+
+    init {
+        isClickable = true
+        contentDescription = context.getString(R.string.float_ball_description)
+    }
 
     override fun onDraw(canvas: Canvas) {
         val radius = minOf(width, height) / 2f
@@ -86,40 +102,97 @@ class FloatBallView(context: Context) : View(context) {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> beginTouch(event)
             MotionEvent.ACTION_MOVE -> continueTouch(event)
-            MotionEvent.ACTION_UP -> endTouch(committed = true)
-            MotionEvent.ACTION_CANCEL -> endTouch(committed = false)
-            else -> return false
+            MotionEvent.ACTION_UP -> finishTouch(event)
+            MotionEvent.ACTION_CANCEL -> cancelTouch()
+            // 多指会让旧版 Android 的 rawX/rawY 基准跳变；电纸书上宁可取消本次拖动，
+            // 也不能把球瞬移到屏幕外或误触菜单。
+            MotionEvent.ACTION_POINTER_DOWN -> cancelTouch()
+            MotionEvent.ACTION_POINTER_UP -> {
+                if (event.getPointerId(event.actionIndex) == activePointerId) cancelTouch()
+            }
         }
         return true
     }
 
     private fun beginTouch(event: MotionEvent) {
-        downRawX = event.rawX
-        downRawY = event.rawY
-        dragging = false
+        val index = event.actionIndex
+        activePointerId = event.getPointerId(index)
+        val point = rawPoint(event, index)
+        classifier.onDown(point.x, point.y)
         setPressedVisual(true)
     }
 
     private fun continueTouch(event: MotionEvent) {
-        val dx = event.rawX - downRawX
-        val dy = event.rawY - downRawY
-        if (!dragging) {
-            if (hypot(dx, dy) < touchSlop) return
-            dragging = true
+        if (activePointerId == INVALID_POINTER_ID) return
+        val index = event.findPointerIndex(activePointerId)
+        if (index < 0) {
+            cancelTouch()
+            return
+        }
+        val point = rawPoint(event, index)
+        applyDecision(classifier.onMove(point.x, point.y))
+    }
+
+    private fun finishTouch(event: MotionEvent) {
+        setPressedVisual(false)
+        if (activePointerId == INVALID_POINTER_ID) return
+        val index = event.findPointerIndex(activePointerId)
+        if (index < 0) {
+            cancelTouch()
+            return
+        }
+        val point = rawPoint(event, index)
+        applyDecision(classifier.onUp(point.x, point.y))
+        activePointerId = INVALID_POINTER_ID
+    }
+
+    private fun cancelTouch() {
+        setPressedVisual(false)
+        applyDecision(classifier.onCancel())
+        activePointerId = INVALID_POINTER_ID
+    }
+
+    private fun applyDecision(decision: GestureDecision) {
+        if (decision.dragStarted) {
             setPressedVisual(false)
             onDragStart?.invoke()
         }
-        onDragMove?.invoke(dx.toInt(), dy.toInt())
+        if (decision.dragMoved) onDragMove?.invoke(decision.dx, decision.dy)
+        if (decision.dragFinished) onDragEnd?.invoke()
+        if (decision.dragCancelled) onDragCancel?.invoke()
+        if (decision.tapped) performClick()
     }
 
-    private fun endTouch(committed: Boolean) {
-        setPressedVisual(false)
-        when {
-            dragging -> onDragEnd?.invoke()
-            committed -> onTap?.invoke()
-        }
-        dragging = false
+    override fun performClick(): Boolean {
+        super.performClick()
+        onTap?.invoke()
+        return true
     }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) setGestureExclusion(w, h)
+    }
+
+    @TargetApi(Build.VERSION_CODES.Q)
+    private fun setGestureExclusion(width: Int, height: Int) {
+        systemGestureExclusionRects = listOf(Rect(0, 0, width, height))
+    }
+
+    private fun rawPoint(event: MotionEvent, index: Int): RawPoint {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return rawPointApi29(event, index)
+        // getRawX(index) 从 API 29 才有；旧系统用指针局部坐标加窗口偏移还原。
+        return RawPoint(
+            x = event.getX(index) + (event.rawX - event.x),
+            y = event.getY(index) + (event.rawY - event.y)
+        )
+    }
+
+    @TargetApi(Build.VERSION_CODES.Q)
+    private fun rawPointApi29(event: MotionEvent, index: Int): RawPoint = RawPoint(
+        x = event.getRawX(index),
+        y = event.getRawY(index)
+    )
 
     private fun setPressedVisual(pressed: Boolean) {
         if (pressedVisual == pressed) return
@@ -133,5 +206,9 @@ class FloatBallView(context: Context) : View(context) {
         const val ARROW_HALF_WIDTH_RATIO = 0.30f
         const val ARROW_HEIGHT_RATIO = 0.26f
         const val ARROW_GAP_RATIO = 0.10f
+        const val E_INK_MIN_TOUCH_SLOP_DP = 12
+        const val INVALID_POINTER_ID = -1
     }
 }
+
+private data class RawPoint(val x: Float, val y: Float)

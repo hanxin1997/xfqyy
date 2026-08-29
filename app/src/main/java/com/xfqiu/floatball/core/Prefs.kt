@@ -28,6 +28,25 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         get() = sp.getInt(KEY_MENU_ITEM_SIZE, MENU_ITEM_DEFAULT_DP)
         set(value) = putClamped(KEY_MENU_ITEM_SIZE, value, MENU_ITEM_MIN_DP, MENU_ITEM_MAX_DP)
 
+    /** 电纸书侧边常有系统翻页/返回触控区，悬浮球不能贴物理边缘。 */
+    var edgeMarginDp: Int
+        get() = sp.getInt(KEY_EDGE_MARGIN, EDGE_MARGIN_DEFAULT_DP)
+        set(value) = putClamped(KEY_EDGE_MARGIN, value, EDGE_MARGIN_MIN_DP, EDGE_MARGIN_MAX_DP)
+
+    var overlayMode: OverlayMode
+        get() = OverlayMode.fromKey(sp.getString(KEY_OVERLAY_MODE, null))
+        set(value) = sp.edit().putString(KEY_OVERLAY_MODE, value.storageKey).apply()
+
+    /** 普通悬浮窗授权页返回后才提交，避免拒绝授权时把现有球拆掉。 */
+    var pendingOverlayMode: OverlayMode?
+        get() = sp.getString(KEY_PENDING_OVERLAY_MODE, null)?.let { OverlayMode.fromKey(it) }
+        set(value) {
+            val editor = sp.edit()
+            if (value == null) editor.remove(KEY_PENDING_OVERLAY_MODE)
+            else editor.putString(KEY_PENDING_OVERLAY_MODE, value.storageKey)
+            editor.apply()
+        }
+
     var pageTurnMode: PageTurnMode
         get() = PageTurnMode.fromKey(sp.getString(KEY_PAGE_TURN_MODE, null))
         set(value) = sp.edit().putString(KEY_PAGE_TURN_MODE, value.storageKey).apply()
@@ -70,15 +89,24 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         get() = sp.getInt(KEY_AUTO_COLLAPSE, AUTO_COLLAPSE_DEFAULT_SEC)
         set(value) = putClamped(KEY_AUTO_COLLAPSE, value, AUTO_COLLAPSE_MIN_SEC, AUTO_COLLAPSE_MAX_SEC)
 
-    /** 开启后拖动过程不刷新，仅在松手时落位，可大幅减少墨水屏残影。 */
+    /** 开启后使用低频位置反馈，兼顾可拖动感知与墨水屏残影控制。 */
     var lowRefreshDrag: Boolean
-        get() = sp.getBoolean(KEY_LOW_REFRESH_DRAG, false)
+        get() = sp.getBoolean(KEY_LOW_REFRESH_DRAG, true)
         set(value) = sp.edit().putBoolean(KEY_LOW_REFRESH_DRAG, value).apply()
 
     /** 常驻通知：兼任进程保活与点击回桌面。 */
     var keepAlive: Boolean
         get() = sp.getBoolean(KEY_KEEP_ALIVE, true)
         set(value) = sp.edit().putBoolean(KEY_KEEP_ALIVE, value).apply()
+
+    /** 用户是否已完整走过“原生后台设置 → 隐藏组件”两阶段引导。 */
+    var backgroundGuideShown: Boolean
+        get() = sp.getBoolean(KEY_BACKGROUND_GUIDE_SHOWN, false)
+        set(value) = sp.edit().putBoolean(KEY_BACKGROUND_GUIDE_SHOWN, value).apply()
+
+    var backgroundSetupPhase: BackgroundSetupPhase
+        get() = BackgroundSetupPhase.fromKey(sp.getString(KEY_BACKGROUND_SETUP_PHASE, null))
+        set(value) = sp.edit().putString(KEY_BACKGROUND_SETUP_PHASE, value.storageKey).apply()
 
     var shortcuts: List<AppShortcut>
         get() = readShortcuts()
@@ -112,6 +140,10 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         const val MENU_ITEM_MAX_DP = 80
         const val MENU_ITEM_DEFAULT_DP = 56
 
+        const val EDGE_MARGIN_MIN_DP = 8
+        const val EDGE_MARGIN_MAX_DP = 40
+        const val EDGE_MARGIN_DEFAULT_DP = 16
+
         const val PERCENT_MIN = 5
         const val PERCENT_MAX = 95
         const val PREV_TAP_X_DEFAULT = 20
@@ -139,6 +171,9 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         private const val KEY_BALL_Y = "ball_y"
         private const val KEY_BALL_SIZE = "ball_size_dp"
         private const val KEY_MENU_ITEM_SIZE = "menu_item_size_dp"
+        private const val KEY_EDGE_MARGIN = "edge_margin_dp"
+        private const val KEY_OVERLAY_MODE = "overlay_mode"
+        private const val KEY_PENDING_OVERLAY_MODE = "pending_overlay_mode"
         private const val KEY_PAGE_TURN_MODE = "page_turn_mode"
         private const val KEY_PAGE_TURN_ENABLED = "page_turn_enabled"
         private const val KEY_BALL_HIDDEN = "ball_hidden"
@@ -150,6 +185,8 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         private const val KEY_AUTO_COLLAPSE = "auto_collapse_sec"
         private const val KEY_LOW_REFRESH_DRAG = "low_refresh_drag"
         private const val KEY_KEEP_ALIVE = "keep_alive"
+        private const val KEY_BACKGROUND_GUIDE_SHOWN = "background_guide_shown"
+        private const val KEY_BACKGROUND_SETUP_PHASE = "background_setup_phase"
         private const val KEY_SHORTCUTS = "shortcuts"
 
         fun of(context: Context): Prefs =

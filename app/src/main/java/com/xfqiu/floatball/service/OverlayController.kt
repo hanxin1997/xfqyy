@@ -1,32 +1,41 @@
 package com.xfqiu.floatball.service
 
+import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.PixelFormat
-import android.graphics.Point
 import android.graphics.Rect
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.Toast
 import com.xfqiu.floatball.R
 import com.xfqiu.floatball.core.BallAction
+import com.xfqiu.floatball.core.EdgeInsets
+import com.xfqiu.floatball.core.DragRefresh
+import com.xfqiu.floatball.core.EInkDragRefreshPolicy
+import com.xfqiu.floatball.core.OverlayGeometry
+import com.xfqiu.floatball.core.OverlayModePolicy
+import com.xfqiu.floatball.core.OverlayWindowKind
+import com.xfqiu.floatball.core.PixelBounds
+import com.xfqiu.floatball.core.PixelPoint
+import com.xfqiu.floatball.core.PixelSize
 import com.xfqiu.floatball.core.Prefs
 import com.xfqiu.floatball.core.dpToPx
 import com.xfqiu.floatball.core.realScreenSize
 import com.xfqiu.floatball.ui.FloatBallView
 import com.xfqiu.floatball.ui.MenuPanelView
+import kotlin.math.max
 
 /**
- * 悬浮窗的全部窗口层操作。由 [FloatBallService] 持有，因此可以使用
- * TYPE_ACCESSIBILITY_OVERLAY —— 这个类型不需要 SYSTEM_ALERT_WINDOW 权限。
- *
- * 球与菜单共用一个窗口：统一一套坐标、一次 updateViewLayout 就能切换形态，
- * 也让触摸穿透标记只需管理一处。
+ * 悬浮窗的全部窗口层操作。窗口仍由无障碍服务持有，但允许在厂商实现异常时
+ * 强制使用普通悬浮窗。所有坐标都先经过墨水屏安全区，绝不再贴物理屏幕边缘。
  */
 class OverlayController(
     private val context: Context,
@@ -43,25 +52,43 @@ class OverlayController(
     private lateinit var menu: MenuPanelView
 
     private var attached = false
+    private var attachedType: Int? = null
     private var expanded = false
     private var dragOriginX = 0
     private var dragOriginY = 0
     private var updateScheduled = false
+    private var recoveryScheduled = false
+    private var desiredTouchThrough = false
+    private var appliedFlags = BASE_FLAGS
+    private var systemInsets = EdgeInsets.ZERO
+    private val dragRefreshPolicy = EInkDragRefreshPolicy()
+
+    private val dragUpdateRunnable = Runnable {
+        updateScheduled = false
+        updateLayout()
+    }
+
+    private val recoveryRunnable = Runnable {
+        recoveryScheduled = false
+        recoverWindow()
+    }
 
     private val ballSizePx: Int
         get() = context.dpToPx(prefs.ballSizeDp)
 
     private val dockedRight: Boolean
         get() {
-            val screenWidth = context.realScreenSize().x
-            if (screenWidth <= 0) return true
-            return prefs.ballX + ballSizePx / 2 > screenWidth / 2
+            val bounds = safeBounds()
+            return prefs.ballX + ballSizePx / 2 > (bounds.left + bounds.right) / 2
         }
 
     fun show() {
         if (attached) return
         prefs = Prefs.of(context)
         if (prefs.ballHidden) return
+        desiredTouchThrough = false
+        appliedFlags = BASE_FLAGS
+        systemInsets = EdgeInsets.ZERO
         ensureInitialPosition()
         buildViews()
         configureParams()
@@ -69,52 +96,71 @@ class OverlayController(
     }
 
     fun hide() {
-        if (!attached) return
-        menu.onHidden()
+        if (::menu.isInitialized) menu.onHidden()
         handler.removeCallbacksAndMessages(null)
         updateScheduled = false
+        recoveryScheduled = false
+        desiredTouchThrough = false
         detachQuietly()
         attached = false
+        attachedType = null
         expanded = false
     }
 
-    /**
-     * 设置项变更后整体重建，避免逐项同步时漏掉某个尺寸或快捷项。
-     * 不能因为当前未显示就早退——隐藏开关关掉时正是要从未显示恢复成显示。
-     */
+    /** 设置项变化时完整重建，窗口类型也只有 remove/add 后才能切换。 */
     fun reload() {
         hide()
         show()
     }
 
-    /** 屏幕旋转后重新收敛位置，否则球可能落在新屏幕之外。 */
     fun onScreenChanged() {
         if (!attached) return
+        systemInsets = EdgeInsets.ZERO
+        root.requestApplyInsets()
         applyGeometry()
         updateLayout()
     }
 
-    /** 派发手势期间打开触摸穿透，让注入的事件落到下层应用而不是被自己吃掉。 */
-    fun setTouchThrough(enabled: Boolean) {
-        if (!attached) return
-        val target = if (enabled) BASE_FLAGS or FLAG_THROUGH else BASE_FLAGS
-        if (params.flags == target) return
-        params.flags = target
-        updateLayout()
+    /**
+     * 派发翻页手势前切换触摸穿透。返回 false 表示系统窗口没有确认应用该 flag，
+     * 调用方此时不能继续派发，否则可能把事件再次送给悬浮球本身。
+     */
+    fun setTouchThrough(enabled: Boolean): Boolean {
+        if (!attached) return false
+        desiredTouchThrough = enabled
+        val targetFlags = flagsFor(enabled)
+        if (appliedFlags == targetFlags) {
+            params.flags = targetFlags
+            return true
+        }
+        params.flags = targetFlags
+        val updated = updateLayout()
+        if (!updated && enabled) {
+            // 开启穿透失败时回到安全目标；已排队的窗口恢复会按 BASE_FLAGS 重挂载。
+            desiredTouchThrough = false
+            params.flags = BASE_FLAGS
+        }
+        return updated
     }
 
-    /** 当前窗口占据的屏幕矩形，供手势坐标避让使用。 */
     fun occupiedRect(): Rect? {
         if (!attached) return null
         return Rect(params.x, params.y, params.x + params.width, params.y + params.height)
     }
 
     private fun ensureInitialPosition() {
-        if (prefs.ballX != Prefs.UNSET_POSITION && prefs.ballY != Prefs.UNSET_POSITION) return
-        val screen = context.realScreenSize()
-        val size = ballSizePx
-        prefs.ballX = maxOf(0, screen.x - size)
-        prefs.ballY = maxOf(0, screen.y / 2 - size / 2)
+        val size = PixelSize(ballSizePx, ballSizePx)
+        val bounds = safeBounds()
+        val saved = if (
+            prefs.ballX == Prefs.UNSET_POSITION || prefs.ballY == Prefs.UNSET_POSITION
+        ) {
+            OverlayGeometry.initialPosition(size, bounds)
+        } else {
+            OverlayGeometry.clamp(PixelPoint(prefs.ballX, prefs.ballY), size, bounds)
+        }
+        // 旧版本保存的物理贴边坐标会在这里自动迁进可触摸安全区。
+        prefs.ballX = saved.x
+        prefs.ballY = saved.y
     }
 
     private fun buildViews() {
@@ -123,16 +169,32 @@ class OverlayController(
             onDragStart = this@OverlayController::beginDrag
             onDragMove = this@OverlayController::onDragged
             onDragEnd = this@OverlayController::endDrag
+            onDragCancel = this@OverlayController::cancelDrag
         }
         menu = MenuPanelView(context, prefs, ::dispatchAction, ::collapse)
         root = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setOnApplyWindowInsetsListener { _, insets ->
+                onWindowInsets(insets)
+                insets
+            }
         }
         layoutChildren()
     }
 
-    /** 菜单朝屏幕内侧展开：球贴右边缘时菜单在左，反之在右。 */
+    private fun onWindowInsets(insets: WindowInsets) {
+        val next = readSystemInsets(insets)
+        if (next == systemInsets) return
+        systemInsets = next
+        handler.post {
+            if (!attached) return@post
+            applyGeometry()
+            updateLayout()
+        }
+    }
+
+    /** 菜单只向屏幕内侧展开，减少整屏墨水刷新面积。 */
     private fun layoutChildren() {
         val size = ballSizePx
         val ballParams = LinearLayout.LayoutParams(size, size)
@@ -151,67 +213,100 @@ class OverlayController(
     private fun configureParams() {
         params.gravity = Gravity.TOP or Gravity.START
         params.format = PixelFormat.TRANSLUCENT
-        params.flags = BASE_FLAGS
+        params.flags = flagsFor(desiredTouchThrough)
         applyGeometry()
     }
 
     private fun applyGeometry() {
         val size = ballSizePx
+        val bounds = safeBounds()
         if (expanded) {
             params.width = menu.desiredWidthPx + size
-            params.height = maxOf(menu.desiredHeightPx, size)
-            params.x = if (dockedRight) prefs.ballX - menu.desiredWidthPx else prefs.ballX
-            params.y = prefs.ballY - (params.height - size) / 2
-        } else {
-            params.width = size
-            params.height = size
-            params.x = prefs.ballX
-            params.y = prefs.ballY
+            params.height = max(menu.desiredHeightPx, size)
+            val raw = PixelPoint(
+                x = if (dockedRight) prefs.ballX - menu.desiredWidthPx else prefs.ballX,
+                y = prefs.ballY - (params.height - size) / 2
+            )
+            val position = OverlayGeometry.clamp(
+                raw,
+                PixelSize(params.width, params.height),
+                bounds
+            )
+            params.x = position.x
+            params.y = position.y
+            return
         }
-        clampToScreen(context.realScreenSize())
+
+        params.width = size
+        params.height = size
+        val position = OverlayGeometry.clamp(
+            PixelPoint(prefs.ballX, prefs.ballY),
+            PixelSize(size, size),
+            bounds
+        )
+        params.x = position.x
+        params.y = position.y
+        prefs.ballX = position.x
+        prefs.ballY = position.y
     }
 
-    /** 折叠态顺带把收敛结果写回配置，旋转屏幕后记录的位置才不会失效。 */
-    private fun clampToScreen(screen: Point) {
-        params.x = params.x.coerceIn(0, maxOf(0, screen.x - params.width))
-        params.y = params.y.coerceIn(0, maxOf(0, screen.y - params.height))
-        if (expanded) return
-        prefs.ballX = params.x
-        prefs.ballY = params.y
+    private fun safeBounds(): PixelBounds {
+        val screen = context.realScreenSize()
+        return OverlayGeometry.safeBounds(
+            screen = PixelSize(screen.x, screen.y),
+            insets = systemInsets,
+            edgeMarginPx = context.dpToPx(prefs.edgeMarginDp)
+        )
     }
 
     private fun attachWithFallback() {
         val manager = windowManager ?: return
-        for (type in candidateWindowTypes()) {
+        val types = candidateWindowTypes()
+        if (types.isEmpty()) {
+            Toast.makeText(context, R.string.overlay_permission_required, Toast.LENGTH_LONG).show()
+            return
+        }
+        params.flags = flagsFor(desiredTouchThrough)
+        for (type in types) {
             params.type = type
             try {
                 manager.addView(root, params)
                 attached = true
+                attachedType = type
+                appliedFlags = params.flags
+                root.requestApplyInsets()
+                Log.i(TAG, "悬浮窗已连接，窗口类型=$type")
                 return
             } catch (error: RuntimeException) {
                 Log.w(TAG, "addView 失败，窗口类型=$type", error)
                 detachQuietly()
+                attached = false
+                attachedType = null
             }
         }
         Toast.makeText(context, R.string.overlay_failed, Toast.LENGTH_LONG).show()
     }
 
-    /**
-     * 无障碍覆盖层优先：不需要额外权限。失败再退到普通悬浮窗类型，
-     * 那一档需要用户已授予 SYSTEM_ALERT_WINDOW。
-     */
     private fun candidateWindowTypes(): List<Int> {
-        val fallback = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val accessibility = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+        val application = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
             @Suppress("DEPRECATION")
             WindowManager.LayoutParams.TYPE_PHONE
         }
-        return listOf(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, fallback)
+        val canUseApplication = Settings.canDrawOverlays(context)
+        return OverlayModePolicy.candidates(prefs.overlayMode, canUseApplication).map { kind ->
+            when (kind) {
+                OverlayWindowKind.APPLICATION -> application
+                OverlayWindowKind.ACCESSIBILITY -> accessibility
+            }
+        }
     }
 
     private fun detachQuietly() {
         val manager = windowManager ?: return
+        if (!::root.isInitialized) return
         runCatching { manager.removeViewImmediate(root) }
     }
 
@@ -237,7 +332,6 @@ class OverlayController(
         updateLayout()
     }
 
-    /** 翻页和返回都可能连按，保持菜单展开可以少刷几次屏；其余动作会切走前台，先收起。 */
     private fun dispatchAction(action: BallAction) {
         if (action !in KEEP_OPEN_ACTIONS) collapse()
         onAction(action)
@@ -245,47 +339,161 @@ class OverlayController(
 
     private fun beginDrag() {
         if (expanded) collapse()
+        dragRefreshPolicy.reset()
         dragOriginX = params.x
         dragOriginY = params.y
     }
 
     private fun onDragged(dx: Int, dy: Int) {
-        val screen = context.realScreenSize()
-        params.x = (dragOriginX + dx).coerceIn(0, maxOf(0, screen.x - params.width))
-        params.y = (dragOriginY + dy).coerceIn(0, maxOf(0, screen.y - params.height))
-        if (prefs.lowRefreshDrag) return
-        scheduleUpdate()
+        val position = OverlayGeometry.clamp(
+            PixelPoint(dragOriginX + dx, dragOriginY + dy),
+            PixelSize(params.width, params.height),
+            safeBounds()
+        )
+        params.x = position.x
+        params.y = position.y
+        when (dragRefreshPolicy.next(prefs.lowRefreshDrag)) {
+            DragRefresh.IMMEDIATE -> {
+                cancelScheduledDragUpdate()
+                updateLayout()
+            }
+            DragRefresh.NORMAL_FREQUENCY -> scheduleUpdate(DRAG_THROTTLE_MS)
+            DragRefresh.LOW_FREQUENCY -> scheduleUpdate(LOW_REFRESH_DRAG_MS)
+        }
     }
 
     private fun endDrag() {
-        val screen = context.realScreenSize()
-        val snapRight = params.x + params.width / 2 > screen.x / 2
-        params.x = if (snapRight) maxOf(0, screen.x - params.width) else 0
-        prefs.ballX = params.x
-        prefs.ballY = params.y
+        cancelScheduledDragUpdate()
+        val position = OverlayGeometry.dock(
+            PixelPoint(params.x, params.y),
+            PixelSize(params.width, params.height),
+            safeBounds()
+        )
+        params.x = position.x
+        params.y = position.y
+        prefs.ballX = position.x
+        prefs.ballY = position.y
         updateLayout()
     }
 
-    /** 合并高频拖动事件，墨水屏经不起逐帧刷新。 */
-    private fun scheduleUpdate() {
-        if (updateScheduled) return
-        updateScheduled = true
-        handler.postDelayed({
-            updateScheduled = false
-            updateLayout()
-        }, DRAG_THROTTLE_MS)
+    private fun cancelDrag() {
+        cancelScheduledDragUpdate()
+        params.x = dragOriginX
+        params.y = dragOriginY
+        // CANCEL 多由系统侧边区抢占造成，只恢复原位，不吸边、不写入 Prefs。
+        updateLayout()
     }
 
-    private fun updateLayout() {
-        if (!attached) return
-        val manager = windowManager ?: return
-        runCatching { manager.updateViewLayout(root, params) }
-            .onFailure { Log.w(TAG, "updateViewLayout 失败", it) }
+    private fun scheduleUpdate(delayMs: Long) {
+        if (updateScheduled) return
+        updateScheduled = true
+        handler.postDelayed(dragUpdateRunnable, delayMs)
     }
+
+    private fun cancelScheduledDragUpdate() {
+        handler.removeCallbacks(dragUpdateRunnable)
+        updateScheduled = false
+    }
+
+    private fun updateLayout(): Boolean {
+        if (!attached) return false
+        val manager = windowManager ?: return false
+        return try {
+            manager.updateViewLayout(root, params)
+            appliedFlags = params.flags
+            true
+        } catch (error: RuntimeException) {
+            Log.w(TAG, "updateViewLayout 失败，将重挂载窗口", error)
+            scheduleRecovery()
+            false
+        }
+    }
+
+    private fun scheduleRecovery() {
+        if (!attached || recoveryScheduled) return
+        recoveryScheduled = true
+        handler.postDelayed(recoveryRunnable, RECOVERY_DELAY_MS)
+    }
+
+    private fun recoverWindow() {
+        if (!attached) return
+        Log.w(TAG, "重挂载悬浮窗，旧窗口类型=$attachedType")
+        detachQuietly()
+        attached = false
+        attachedType = null
+        attachWithFallback()
+    }
+
+    private fun flagsFor(touchThrough: Boolean): Int =
+        if (touchThrough) BASE_FLAGS or FLAG_THROUGH else BASE_FLAGS
+
+    private fun readSystemInsets(insets: WindowInsets): EdgeInsets = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> readInsetsApi30(insets)
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> readInsetsApi29(insets)
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> readInsetsApi28(insets)
+        else -> legacyStableInsets(insets)
+    }
+
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun readInsetsApi30(insets: WindowInsets): EdgeInsets {
+        val bars = insets.getInsetsIgnoringVisibility(
+            WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()
+        ).toEdgeInsets()
+        val gestures = insets.getInsets(
+            WindowInsets.Type.systemGestures() or WindowInsets.Type.mandatorySystemGestures()
+        ).toEdgeInsets()
+        return maxInsets(bars, gestures)
+    }
+
+    @TargetApi(Build.VERSION_CODES.Q)
+    private fun readInsetsApi29(insets: WindowInsets): EdgeInsets = maxInsets(
+        legacyStableInsets(insets),
+        insets.systemGestureInsets.toEdgeInsets(),
+        insets.mandatorySystemGestureInsets.toEdgeInsets(),
+        cutoutInsets(insets)
+    )
+
+    @TargetApi(Build.VERSION_CODES.P)
+    private fun readInsetsApi28(insets: WindowInsets): EdgeInsets = maxInsets(
+        legacyStableInsets(insets),
+        cutoutInsets(insets)
+    )
+
+    @Suppress("DEPRECATION")
+    private fun legacyStableInsets(insets: WindowInsets): EdgeInsets = EdgeInsets(
+        insets.stableInsetLeft,
+        insets.stableInsetTop,
+        insets.stableInsetRight,
+        insets.stableInsetBottom
+    )
+
+    @TargetApi(Build.VERSION_CODES.P)
+    private fun cutoutInsets(insets: WindowInsets): EdgeInsets {
+        val cutout = insets.displayCutout ?: return EdgeInsets.ZERO
+        return EdgeInsets(
+            cutout.safeInsetLeft,
+            cutout.safeInsetTop,
+            cutout.safeInsetRight,
+            cutout.safeInsetBottom
+        )
+    }
+
+    @TargetApi(Build.VERSION_CODES.Q)
+    private fun android.graphics.Insets.toEdgeInsets(): EdgeInsets =
+        EdgeInsets(left, top, right, bottom)
+
+    private fun maxInsets(vararg values: EdgeInsets): EdgeInsets = EdgeInsets(
+        left = values.maxOfOrNull { it.left } ?: 0,
+        top = values.maxOfOrNull { it.top } ?: 0,
+        right = values.maxOfOrNull { it.right } ?: 0,
+        bottom = values.maxOfOrNull { it.bottom } ?: 0
+    )
 
     private companion object {
         const val TAG = "OverlayController"
         const val DRAG_THROTTLE_MS = 60L
+        const val LOW_REFRESH_DRAG_MS = 240L
+        const val RECOVERY_DELAY_MS = 50L
         const val BASE_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
         const val FLAG_THROUGH = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE

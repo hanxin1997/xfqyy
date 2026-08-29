@@ -59,6 +59,8 @@ android {
 }
 
 dependencies {
-    // 有意保持零第三方依赖：墨水屏设备 CPU 弱、存储小，
+    // 发布 APK 有意保持零第三方运行时依赖：墨水屏设备 CPU 弱、存储小，
     // AndroidX / Compose 带来的体积与动画开销都不划算。
+    // JUnit 仅在 CI 的宿主 JVM 中运行，不会打进 APK。
+    testImplementation("junit:junit:4.13.2")
 }

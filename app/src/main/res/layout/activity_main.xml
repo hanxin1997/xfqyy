@@ -25,6 +25,10 @@
                 style="@style/InkSection" />
 
             <TextView
+                android:id="@+id/service_status"
+                style="@style/InkHint" />
+
+            <TextView
                 style="@style/InkHint"
                 android:text="@string/accessibility_hint" />
 
@@ -49,6 +53,55 @@
                 android:id="@+id/open_overlay"
                 style="@style/InkButton"
                 android:text="@string/open_overlay" />
+
+        </LinearLayout>
+
+        <LinearLayout style="@style/InkCard">
+
+            <TextView
+                style="@style/InkSection"
+                android:text="@string/background_section" />
+
+            <TextView
+                style="@style/InkHint"
+                android:text="@string/background_hint" />
+
+            <TextView
+                android:id="@+id/battery_status"
+                style="@style/InkHint" />
+
+            <TextView
+                android:id="@+id/keep_alive_status"
+                style="@style/InkHint" />
+
+            <TextView
+                android:id="@+id/notification_status"
+                style="@style/InkHint" />
+
+            <Button
+                android:id="@+id/open_native_background"
+                style="@style/InkButton"
+                android:text="@string/start_background_setup" />
+
+            <Button
+                android:id="@+id/open_autostart"
+                style="@style/InkButton"
+                android:text="@string/open_autostart" />
+
+            <Button
+                android:id="@+id/open_battery_policy"
+                style="@style/InkButton"
+                android:text="@string/open_battery_policy" />
+
+            <Button
+                android:id="@+id/open_app_details"
+                style="@style/InkButton"
+                android:text="@string/open_app_details" />
+
+            <Button
+                android:id="@+id/open_notifications"
+                style="@style/InkButton"
+                android:text="@string/open_notifications" />
 
         </LinearLayout>
 

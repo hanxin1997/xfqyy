@@ -39,11 +39,12 @@ class FloatBallService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        overlay?.hide()
         tracker = ForegroundTracker(this)
         val controller = OverlayController(this, ::execute)
         overlay = controller
         controller.show()
-        KeepAliveService.sync(this, Prefs.of(this).keepAlive)
+        KeepAliveService.syncFromPrefs(this)
     }
 
     /** 只取事件里的前台包名喂给「前进」的历史，不读取任何窗口内容。 */
@@ -76,7 +77,6 @@ class FloatBallService : AccessibilityService() {
         overlay?.hide()
         overlay = null
         tracker = null
-        KeepAliveService.sync(this, false)
         if (instance === this) instance = null
     }
 
@@ -112,7 +112,11 @@ class FloatBallService : AccessibilityService() {
             controller.occupiedRect()
         ) ?: return
         gesturePending = true
-        controller.setTouchThrough(true)
+        if (!controller.setTouchThrough(true)) {
+            gesturePending = false
+            Log.w(TAG, "悬浮窗未能进入触摸穿透状态，取消本次手势")
+            return
+        }
         // 触摸穿透标记要经过一次窗口更新才生效，稍等一下再派发
         handler.postDelayed({ dispatch(gesture, controller) }, PASSTHROUGH_SETTLE_MS)
     }
@@ -124,7 +128,9 @@ class FloatBallService : AccessibilityService() {
     private fun dispatch(gesture: GestureDescription, controller: OverlayController) {
         val restore = Runnable {
             gesturePending = false
-            controller.setTouchThrough(false)
+            if (!controller.setTouchThrough(false)) {
+                Log.w(TAG, "悬浮窗触摸状态恢复失败，已请求重挂载")
+            }
         }
         handler.postDelayed(restore, PASSTHROUGH_TIMEOUT_MS)
         val callback = object : AccessibilityService.GestureResultCallback() {
@@ -188,8 +194,10 @@ class FloatBallService : AccessibilityService() {
             val service = instance ?: return
             service.handler.post {
                 service.overlay?.reload()
-                KeepAliveService.sync(service, Prefs.of(service).keepAlive)
+                KeepAliveService.syncFromPrefs(service)
             }
         }
+
+        fun isConnected(): Boolean = instance != null
     }
 }

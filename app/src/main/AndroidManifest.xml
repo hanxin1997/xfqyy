@@ -5,10 +5,20 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- 常驻通知：保活 + 点击返回桌面 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- 开机与应用升级后按用户配置恢复常驻服务 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Android 13+ 常驻通知可见性；Android 11 目标设备不会弹此运行时权限 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 墨水屏需要持续悬浮交互，允许直接请求退出 Doze 优化 -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- targetSdk 30 起需要显式声明才能列出并启动其他应用 -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <queries>
+        <!-- 电纸书可能隐藏入口，但系统设置/安全中心/省电组件仍可由显式 Intent 打开 -->
+        <package android:name="com.miui.securitycenter" />
+        <package android:name="com.miui.powerkeeper" />
+        <package android:name="com.android.settings" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -59,6 +69,16 @@
         <service
             android:name=".service.KeepAliveService"
             android:exported="false" />
+
+        <receiver
+            android:name=".receiver.StartupReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
