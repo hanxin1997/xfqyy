@@ -446,6 +446,7 @@ class OverlayController(
     }
 
     @TargetApi(Build.VERSION_CODES.Q)
+    @Suppress("DEPRECATION")
     private fun readInsetsApi29(insets: WindowInsets): EdgeInsets = maxInsets(
         legacyStableInsets(insets),
         insets.systemGestureInsets.toEdgeInsets(),

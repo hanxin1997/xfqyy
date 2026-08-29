@@ -56,6 +56,12 @@ android {
     buildFeatures {
         buildConfig = false
     }
+
+    lint {
+        // 本应用只给 Android 11 墨水屏电纸书侧载，target 30 是兼容性设计而非上架配置。
+        // 升到 33+ 会引入通知权限与后台前台服务行为变化，不能为 Play 检查盲目升级。
+        disable += "ExpiredTargetSdkVersion"
+    }
 }
 
 dependencies {
