@@ -46,6 +46,10 @@
                 style="@style/InkSection" />
 
             <TextView
+                android:id="@+id/overlay_kind_status"
+                style="@style/InkHint" />
+
+            <TextView
                 style="@style/InkHint"
                 android:text="@string/overlay_hint" />
 

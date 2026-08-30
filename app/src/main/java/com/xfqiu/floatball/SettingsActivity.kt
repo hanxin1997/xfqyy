@@ -50,6 +50,7 @@ class SettingsActivity : Activity() {
         fillSliders(R.id.gesture_slider_container, gestureSliders())
         fillSliders(R.id.appearance_slider_container, appearanceSliders())
         fillSwitches(R.id.page_turn_switch_container, pageTurnSwitches())
+        fillSwitches(R.id.overlay_mode_switch_container, overlayModeSwitches())
         fillSwitches(R.id.switch_container, behaviorSwitches())
         renderShortcuts()
         lastOverlayPermission = Settings.canDrawOverlays(this)
@@ -235,6 +236,13 @@ class SettingsActivity : Activity() {
     private fun pageTurnSwitches(): List<SwitchSpec> = listOf(
         SwitchSpec(R.string.switch_page_turn, prefs.pageTurnEnabled) {
             prefs.pageTurnEnabled = it
+        }
+    )
+
+    /** 紧跟兼容模式单选组，因为它只修饰「普通悬浮窗」那一项。 */
+    private fun overlayModeSwitches(): List<SwitchSpec> = listOf(
+        SwitchSpec(R.string.switch_strict_application, prefs.strictApplicationOverlay) {
+            prefs.strictApplicationOverlay = it
         }
     )
 

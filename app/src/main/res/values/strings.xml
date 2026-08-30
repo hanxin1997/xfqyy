@@ -16,6 +16,7 @@
     <string name="launch_failed">无法启动 %1$s</string>
     <string name="overlay_failed">悬浮窗创建失败，请确认无障碍服务已开启</string>
     <string name="overlay_permission_required">普通悬浮窗模式需要先授予悬浮窗权限</string>
+    <string name="overlay_strict_rejected">系统拒绝了普通悬浮窗，且已按设置禁止回退，悬浮球不显示</string>
     <string name="float_ball_description">墨水屏悬浮菜单</string>
 
     <string name="notification_channel">悬浮球常驻</string>
@@ -26,6 +27,10 @@
     <string name="status_accessibility">无障碍服务：%1$s</string>
     <string name="status_service_connected">无障碍服务实际连接：%1$s</string>
     <string name="status_overlay">悬浮窗权限：%1$s</string>
+    <string name="status_overlay_kind">悬浮窗实际类型：%1$s</string>
+    <string name="overlay_kind_application">普通悬浮窗</string>
+    <string name="overlay_kind_accessibility">无障碍覆盖层（若点不动请去设置页改用普通悬浮窗）</string>
+    <string name="overlay_kind_none">未挂载</string>
     <string name="status_battery_unrestricted">系统电池优化豁免：%1$s</string>
     <string name="status_keep_alive_running">保活服务实际运行：%1$s</string>
     <string name="status_notification">常驻通知权限及渠道：%1$s</string>
@@ -73,6 +78,8 @@
     <string name="overlay_mode_accessibility">仅无障碍覆盖层</string>
     <string name="overlay_mode_application">普通悬浮窗（电纸书兼容）</string>
     <string name="overlay_mode_permission_denied">未授予普通悬浮窗权限，已保留原来的可用模式</string>
+    <string name="switch_strict_application">禁止回退到无障碍覆盖层</string>
+    <string name="overlay_strict_hint">仅在已选“普通悬浮窗”且已授权时生效。打开后普通悬浮窗建不起来就让球不出现——球消失说明是系统拒绝这类窗口，不是手势问题。球没了可从桌面图标回到这里关掉。</string>
     <string name="slider_ball_size">悬浮球直径</string>
     <string name="slider_menu_size">菜单按钮尺寸</string>
     <string name="slider_edge_margin">离屏幕边缘距离</string>

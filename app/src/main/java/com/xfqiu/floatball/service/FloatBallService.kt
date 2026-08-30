@@ -15,6 +15,7 @@ import com.xfqiu.floatball.SettingsActivity
 import com.xfqiu.floatball.core.BallAction
 import com.xfqiu.floatball.core.ForegroundTracker
 import com.xfqiu.floatball.core.GestureFactory
+import com.xfqiu.floatball.core.OverlayWindowKind
 import com.xfqiu.floatball.core.Prefs
 import com.xfqiu.floatball.core.realScreenSize
 
@@ -199,5 +200,8 @@ class FloatBallService : AccessibilityService() {
         }
 
         fun isConnected(): Boolean = instance != null
+
+        /** 悬浮球当前真正挂在哪种窗口上；未挂载返回 null。 */
+        fun activeOverlayKind(): OverlayWindowKind? = instance?.overlay?.activeWindowKind()
     }
 }

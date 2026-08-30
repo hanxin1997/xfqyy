@@ -9,6 +9,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.os.Build
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -98,17 +99,19 @@ class FloatBallView(context: Context) : View(context) {
         canvas.drawPath(iconPath, iconPaint)
     }
 
+    /**
+     * 只认按下时记录的活跃指针。电纸书电容层噪声大，会在真实触点附近报告瞬时第二指针，
+     * 一旦因此取消手势，点击会被静默丢弃、拖动会弹回原位 —— 表现就是「点不开又拉不动」。
+     * 多余指针一律忽略；活跃指针自己抬起时按正常提交处理。
+     */
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> beginTouch(event)
             MotionEvent.ACTION_MOVE -> continueTouch(event)
             MotionEvent.ACTION_UP -> finishTouch(event)
             MotionEvent.ACTION_CANCEL -> cancelTouch()
-            // 多指会让旧版 Android 的 rawX/rawY 基准跳变；电纸书上宁可取消本次拖动，
-            // 也不能把球瞬移到屏幕外或误触菜单。
-            MotionEvent.ACTION_POINTER_DOWN -> cancelTouch()
             MotionEvent.ACTION_POINTER_UP -> {
-                if (event.getPointerId(event.actionIndex) == activePointerId) cancelTouch()
+                if (event.getPointerId(event.actionIndex) == activePointerId) finishTouch(event)
             }
         }
         return true
@@ -123,27 +126,27 @@ class FloatBallView(context: Context) : View(context) {
     }
 
     private fun continueTouch(event: MotionEvent) {
-        if (activePointerId == INVALID_POINTER_ID) return
-        val index = event.findPointerIndex(activePointerId)
-        if (index < 0) {
-            cancelTouch()
-            return
-        }
-        val point = rawPoint(event, index)
+        val point = activePoint(event) ?: return
         applyDecision(classifier.onMove(point.x, point.y))
     }
 
     private fun finishTouch(event: MotionEvent) {
         setPressedVisual(false)
-        if (activePointerId == INVALID_POINTER_ID) return
-        val index = event.findPointerIndex(activePointerId)
-        if (index < 0) {
-            cancelTouch()
-            return
-        }
-        val point = rawPoint(event, index)
+        val point = activePoint(event) ?: return
         applyDecision(classifier.onUp(point.x, point.y))
         activePointerId = INVALID_POINTER_ID
+    }
+
+    /** 活跃指针中途消失属于异常，取消手势并留一条日志；正常流程不输出。 */
+    private fun activePoint(event: MotionEvent): RawPoint? {
+        if (activePointerId == INVALID_POINTER_ID) return null
+        val index = event.findPointerIndex(activePointerId)
+        if (index < 0) {
+            Log.w(TAG, "活跃指针 $activePointerId 已丢失，取消本次手势")
+            cancelTouch()
+            return null
+        }
+        return rawPoint(event, index)
     }
 
     private fun cancelTouch() {
@@ -201,6 +204,7 @@ class FloatBallView(context: Context) : View(context) {
     }
 
     private companion object {
+        const val TAG = "FloatBallView"
         const val STROKE_RATIO_NORMAL = 0.12f
         const val STROKE_RATIO_PRESSED = 0.26f
         const val ARROW_HALF_WIDTH_RATIO = 0.30f

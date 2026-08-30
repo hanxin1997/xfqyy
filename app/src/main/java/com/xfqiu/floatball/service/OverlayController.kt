@@ -21,6 +21,7 @@ import com.xfqiu.floatball.core.EdgeInsets
 import com.xfqiu.floatball.core.DragRefresh
 import com.xfqiu.floatball.core.EInkDragRefreshPolicy
 import com.xfqiu.floatball.core.OverlayGeometry
+import com.xfqiu.floatball.core.OverlayMode
 import com.xfqiu.floatball.core.OverlayModePolicy
 import com.xfqiu.floatball.core.OverlayWindowKind
 import com.xfqiu.floatball.core.PixelBounds
@@ -52,7 +53,7 @@ class OverlayController(
     private lateinit var menu: MenuPanelView
 
     private var attached = false
-    private var attachedType: Int? = null
+    private var attachedKind: OverlayWindowKind? = null
     private var expanded = false
     private var dragOriginX = 0
     private var dragOriginY = 0
@@ -103,7 +104,7 @@ class OverlayController(
         desiredTouchThrough = false
         detachQuietly()
         attached = false
-        attachedType = null
+        attachedKind = null
         expanded = false
     }
 
@@ -261,47 +262,54 @@ class OverlayController(
 
     private fun attachWithFallback() {
         val manager = windowManager ?: return
-        val types = candidateWindowTypes()
-        if (types.isEmpty()) {
+        val plan = OverlayModePolicy.attachPlan(
+            mode = prefs.overlayMode,
+            canDrawOverlays = Settings.canDrawOverlays(context),
+            strictApplication = prefs.strictApplicationOverlay
+        )
+        // 只有用户显式选了普通悬浮窗才提示：AUTO 退到无障碍覆盖层是正常兜底，
+        // 而 notifySettingsChanged() 每次回到引导页都会重建窗口，无条件弹提示会变成骚扰。
+        if (plan.degradedFromApplication && prefs.overlayMode == OverlayMode.APPLICATION) {
             Toast.makeText(context, R.string.overlay_permission_required, Toast.LENGTH_LONG).show()
-            return
         }
         params.flags = flagsFor(desiredTouchThrough)
-        for (type in types) {
-            params.type = type
+        for (kind in plan.candidates) {
+            params.type = windowTypeOf(kind)
             try {
                 manager.addView(root, params)
                 attached = true
-                attachedType = type
+                attachedKind = kind
                 appliedFlags = params.flags
                 root.requestApplyInsets()
-                Log.i(TAG, "悬浮窗已连接，窗口类型=$type")
+                Log.i(TAG, "悬浮窗已连接，窗口类型=$kind")
                 return
             } catch (error: RuntimeException) {
-                Log.w(TAG, "addView 失败，窗口类型=$type", error)
+                Log.w(TAG, "addView 失败，窗口类型=$kind", error)
                 detachQuietly()
                 attached = false
-                attachedType = null
+                attachedKind = null
             }
         }
-        Toast.makeText(context, R.string.overlay_failed, Toast.LENGTH_LONG).show()
+        // 用户主动禁了兜底，失败原因必然是 ROM 拒绝普通悬浮窗，
+        // 此时再提示「请确认无障碍服务已开启」是误导。
+        val message =
+            if (plan.accessibilityFallbackDisabled) R.string.overlay_strict_rejected
+            else R.string.overlay_failed
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
 
-    private fun candidateWindowTypes(): List<Int> {
-        val accessibility = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-        val application = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
-        val canUseApplication = Settings.canDrawOverlays(context)
-        return OverlayModePolicy.candidates(prefs.overlayMode, canUseApplication).map { kind ->
-            when (kind) {
-                OverlayWindowKind.APPLICATION -> application
-                OverlayWindowKind.ACCESSIBILITY -> accessibility
+    /** 真正 addView 成功的窗口类型，未挂载时为 null。供引导页展示，便于定位「球点不动」。 */
+    fun activeWindowKind(): OverlayWindowKind? = if (attached) attachedKind else null
+
+    private fun windowTypeOf(kind: OverlayWindowKind): Int = when (kind) {
+        OverlayWindowKind.ACCESSIBILITY -> WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+        OverlayWindowKind.APPLICATION ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE
             }
-        }
     }
 
     private fun detachQuietly() {
@@ -378,6 +386,8 @@ class OverlayController(
 
     private fun cancelDrag() {
         cancelScheduledDragUpdate()
+        // 位置没变就别刷：噪声尖峰被判回点击时会先复位再展开菜单，否则墨水屏要白刷一次。
+        if (params.x == dragOriginX && params.y == dragOriginY) return
         params.x = dragOriginX
         params.y = dragOriginY
         // CANCEL 多由系统侧边区抢占造成，只恢复原位，不吸边、不写入 Prefs。
@@ -417,10 +427,10 @@ class OverlayController(
 
     private fun recoverWindow() {
         if (!attached) return
-        Log.w(TAG, "重挂载悬浮窗，旧窗口类型=$attachedType")
+        Log.w(TAG, "重挂载悬浮窗，旧窗口类型=$attachedKind")
         detachQuietly()
         attached = false
-        attachedType = null
+        attachedKind = null
         attachWithFallback()
     }
 
@@ -493,7 +503,8 @@ class OverlayController(
     private companion object {
         const val TAG = "OverlayController"
         const val DRAG_THROTTLE_MS = 60L
-        const val LOW_REFRESH_DRAG_MS = 240L
+        // 240ms 叠加残影会让用户以为球拖不动；120ms 仍远低于普通手机刷新频率。
+        const val LOW_REFRESH_DRAG_MS = 120L
         const val RECOVERY_DELAY_MS = 50L
         const val BASE_FLAGS = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN

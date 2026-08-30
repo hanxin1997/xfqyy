@@ -14,6 +14,12 @@ class FloatBallGestureClassifier(touchSlopPx: Float) {
     private var downX = 0f
     private var downY = 0f
 
+    private fun distanceSquared(rawX: Float, rawY: Float): Float {
+        val dx = rawX - downX
+        val dy = rawY - downY
+        return dx * dx + dy * dy
+    }
+
     fun onDown(rawX: Float, rawY: Float): GestureDecision {
         downX = rawX
         downY = rawY
@@ -25,7 +31,7 @@ class FloatBallGestureClassifier(touchSlopPx: Float) {
         if (state == State.IDLE) return GestureDecision.NONE
         val dx = rawX - downX
         val dy = rawY - downY
-        val startsDrag = state == State.PRESSED && dx * dx + dy * dy >= touchSlopSquared
+        val startsDrag = state == State.PRESSED && distanceSquared(rawX, rawY) >= touchSlopSquared
         if (state == State.PRESSED && !startsDrag) return GestureDecision.NONE
         state = State.DRAGGING
         return GestureDecision(
@@ -39,14 +45,19 @@ class FloatBallGestureClassifier(touchSlopPx: Float) {
     /**
      * ACTION_UP 自带的最终坐标也必须参与分类。低刷新驱动可能合并掉 MOVE；
      * 若只看先前 MOVE，会把一次明显拖动误判成点击。
+     *
+     * DRAGGING 是锁存态：墨水屏一个噪声采样越过阈值就会永久锁死，手指回到原点也拿不回点击。
+     * 因此抬手时按「相对按下点的净位移」复核一次，只有真正走远了才算拖动。
      */
     fun onUp(rawX: Float, rawY: Float): GestureDecision {
         if (state == State.IDLE) return GestureDecision.NONE
         val finalMove = onMove(rawX, rawY)
-        val decision = when (state) {
-            State.PRESSED -> finalMove.copy(tapped = true)
-            State.DRAGGING -> finalMove.copy(dragFinished = true)
-            State.IDLE -> GestureDecision.NONE
+        val committed = distanceSquared(rawX, rawY) >= touchSlopSquared
+        val decision = when {
+            state != State.DRAGGING -> finalMove.copy(tapped = true)
+            committed -> finalMove.copy(dragFinished = true)
+            // 噪声尖峰：窗口可能已经跟着动过，撤回位移再交付点击。
+            else -> GestureDecision(tapped = true, dragCancelled = true)
         }
         reset()
         return decision

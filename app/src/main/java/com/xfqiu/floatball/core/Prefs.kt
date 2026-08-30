@@ -47,6 +47,16 @@ class Prefs private constructor(private val sp: SharedPreferences) {
             editor.apply()
         }
 
+    /**
+     * 强制「普通悬浮窗」时是否禁止回退到无障碍覆盖层。默认关闭。
+     *
+     * 打开后普通悬浮窗建不起来就让球不出现 —— 球消失即结论：ROM 拒绝了整类普通悬浮窗，
+     * 而不是手势层的问题。只在权限已给的显式 APPLICATION 模式下生效，见 [OverlayModePolicy.attachPlan]。
+     */
+    var strictApplicationOverlay: Boolean
+        get() = sp.getBoolean(KEY_STRICT_APPLICATION_OVERLAY, false)
+        set(value) = sp.edit().putBoolean(KEY_STRICT_APPLICATION_OVERLAY, value).apply()
+
     var pageTurnMode: PageTurnMode
         get() = PageTurnMode.fromKey(sp.getString(KEY_PAGE_TURN_MODE, null))
         set(value) = sp.edit().putString(KEY_PAGE_TURN_MODE, value.storageKey).apply()
@@ -174,6 +184,7 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         private const val KEY_EDGE_MARGIN = "edge_margin_dp"
         private const val KEY_OVERLAY_MODE = "overlay_mode"
         private const val KEY_PENDING_OVERLAY_MODE = "pending_overlay_mode"
+        private const val KEY_STRICT_APPLICATION_OVERLAY = "strict_application_overlay"
         private const val KEY_PAGE_TURN_MODE = "page_turn_mode"
         private const val KEY_PAGE_TURN_ENABLED = "page_turn_enabled"
         private const val KEY_BALL_HIDDEN = "ball_hidden"

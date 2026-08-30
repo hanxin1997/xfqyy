@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.xfqiu.floatball.core.BackgroundRunSettings
 import com.xfqiu.floatball.core.BackgroundSetupPhase
+import com.xfqiu.floatball.core.OverlayWindowKind
 import com.xfqiu.floatball.core.Prefs
 import com.xfqiu.floatball.service.FloatBallService
 import com.xfqiu.floatball.service.KeepAliveService
@@ -28,6 +29,7 @@ class MainActivity : Activity() {
     private lateinit var accessibilityStatus: TextView
     private lateinit var serviceStatus: TextView
     private lateinit var overlayStatus: TextView
+    private lateinit var overlayKindStatus: TextView
     private lateinit var batteryStatus: TextView
     private lateinit var keepAliveStatus: TextView
     private lateinit var notificationStatus: TextView
@@ -42,6 +44,7 @@ class MainActivity : Activity() {
         accessibilityStatus = findViewById(R.id.accessibility_status)
         serviceStatus = findViewById(R.id.service_status)
         overlayStatus = findViewById(R.id.overlay_status)
+        overlayKindStatus = findViewById(R.id.overlay_kind_status)
         batteryStatus = findViewById(R.id.battery_status)
         keepAliveStatus = findViewById(R.id.keep_alive_status)
         notificationStatus = findViewById(R.id.notification_status)
@@ -103,6 +106,7 @@ class MainActivity : Activity() {
             statusText(R.string.status_accessibility, isAccessibilityServiceEnabled())
         serviceStatus.text = statusText(R.string.status_service_connected, FloatBallService.isConnected())
         overlayStatus.text = statusText(R.string.status_overlay, Settings.canDrawOverlays(this))
+        overlayKindStatus.text = getString(R.string.status_overlay_kind, activeOverlayKindLabel())
         batteryStatus.text = statusText(
             R.string.status_battery_unrestricted,
             BackgroundRunSettings.isIgnoringBatteryOptimizations(this)
@@ -116,6 +120,15 @@ class MainActivity : Activity() {
             KeepAliveService.isNotificationVisible(this)
         )
     }
+
+    /** 球能显示却点不动时，先看这行确认到底挂在哪种窗口上，不必靠猜。 */
+    private fun activeOverlayKindLabel(): String = getString(
+        when (FloatBallService.activeOverlayKind()) {
+            OverlayWindowKind.APPLICATION -> R.string.overlay_kind_application
+            OverlayWindowKind.ACCESSIBILITY -> R.string.overlay_kind_accessibility
+            null -> R.string.overlay_kind_none
+        }
+    )
 
     private fun statusText(labelRes: Int, granted: Boolean): String {
         val state = getString(if (granted) R.string.state_on else R.string.state_off)

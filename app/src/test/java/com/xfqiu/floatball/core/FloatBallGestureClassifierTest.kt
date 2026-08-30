@@ -56,6 +56,21 @@ class FloatBallGestureClassifierTest {
         assertTrue(move.dragStarted)
     }
 
+    /** 墨水屏噪声采样越过阈值后手指回到原点：必须还回点击，并撤回已经发生的位移。 */
+    @Test
+    fun noiseSpikeThenReturnToOrigin_isStillTap() {
+        val classifier = FloatBallGestureClassifier(touchSlopPx = 12f)
+
+        classifier.onDown(100f, 100f)
+        val spike = classifier.onMove(120f, 100f)
+        val up = classifier.onUp(101f, 100f)
+
+        assertTrue(spike.dragStarted)
+        assertTrue(up.tapped)
+        assertTrue(up.dragCancelled)
+        assertFalse(up.dragFinished)
+    }
+
     @Test
     fun coalescedMoveDeliveredOnlyOnUp_stillCommitsDrag() {
         val classifier = FloatBallGestureClassifier(touchSlopPx = 12f)
