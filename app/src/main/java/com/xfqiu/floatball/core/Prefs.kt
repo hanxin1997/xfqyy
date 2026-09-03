@@ -20,6 +20,14 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         get() = sp.getInt(KEY_BALL_Y, UNSET_POSITION)
         set(value) = sp.edit().putInt(KEY_BALL_Y, value).apply()
 
+    /** 同一次提交保存两个坐标，避免服务重载时读到一新一旧的中间状态。 */
+    fun setBallPosition(position: PixelPoint) {
+        sp.edit()
+            .putInt(KEY_BALL_X, position.x)
+            .putInt(KEY_BALL_Y, position.y)
+            .apply()
+    }
+
     var ballSizeDp: Int
         get() = sp.getInt(KEY_BALL_SIZE, BALL_SIZE_DEFAULT_DP)
         set(value) = putClamped(KEY_BALL_SIZE, value, BALL_SIZE_MIN_DP, BALL_SIZE_MAX_DP)
@@ -151,7 +159,8 @@ class Prefs private constructor(private val sp: SharedPreferences) {
         const val MENU_ITEM_DEFAULT_DP = 56
 
         const val EDGE_MARGIN_MIN_DP = 8
-        const val EDGE_MARGIN_MAX_DP = 40
+        // 厂商电纸书可能保留远宽于 Android 标准 Insets 的侧边手势区。
+        const val EDGE_MARGIN_MAX_DP = 96
         const val EDGE_MARGIN_DEFAULT_DP = 16
 
         const val PERCENT_MIN = 5

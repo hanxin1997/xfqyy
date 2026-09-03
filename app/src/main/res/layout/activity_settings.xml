@@ -123,6 +123,12 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
+            <Button
+                android:id="@+id/center_float_ball"
+                style="@style/InkButton"
+                android:layout_marginBottom="@dimen/gap"
+                android:text="@string/center_float_ball" />
+
             <LinearLayout
                 android:id="@+id/switch_container"
                 android:layout_width="match_parent"

@@ -34,6 +34,8 @@
         android:id="@+id/slider_seek"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="@dimen/row_min_height" />
+        android:minHeight="@dimen/row_min_height"
+        android:paddingStart="@dimen/slider_edge_padding"
+        android:paddingEnd="@dimen/slider_edge_padding" />
 
 </LinearLayout>

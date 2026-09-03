@@ -51,4 +51,39 @@ class OverlayGeometryTest {
 
         assertEquals(PixelPoint(x = 1252, y = 880), initial)
     }
+
+    @Test
+    fun centerPosition_centersWholeWindowInsideAsymmetricBounds() {
+        val bounds = PixelBounds(left = 24, top = 72, right = 1348, bottom = 1784)
+
+        val centered = OverlayGeometry.centerPosition(ball, bounds)
+
+        assertEquals(PixelPoint(x = 638, y = 880), centered)
+    }
+
+    @Test
+    fun centerPosition_windowLargerThanBounds_fallsBackToBoundsOrigin() {
+        val bounds = PixelBounds(left = 10, top = 20, right = 110, bottom = 70)
+
+        val centered = OverlayGeometry.centerPosition(
+            window = PixelSize(width = 200, height = 100),
+            bounds = bounds
+        )
+
+        assertEquals(PixelPoint(x = 10, y = 20), centered)
+    }
+
+    @Test
+    fun expandedEInkMargin_keepsDockedBallOutsideWideGestureZone() {
+        val bounds = OverlayGeometry.safeBounds(
+            screen = screen,
+            insets = EdgeInsets.ZERO,
+            edgeMarginPx = 96
+        )
+
+        val right = OverlayGeometry.dock(PixelPoint(1200, 500), ball, bounds)
+
+        assertEquals(PixelBounds(left = 96, top = 96, right = 1308, bottom = 1776), bounds)
+        assertEquals(PixelPoint(x = 1212, y = 500), right)
+    }
 }

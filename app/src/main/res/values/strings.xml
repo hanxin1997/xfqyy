@@ -41,7 +41,7 @@
     <string name="open_accessibility">打开无障碍设置</string>
     <string name="open_overlay">打开悬浮窗权限</string>
     <string name="open_settings">悬浮球设置</string>
-    <string name="usage_hint">用法：单击悬浮球展开竖直菜单；按住拖动可换位置，松手吸附到安全边缘。低刷新模式拖动时约每 240 毫秒更新一次，属于正常的墨水屏防残影行为。</string>
+    <string name="usage_hint">用法：单击悬浮球展开竖直菜单；按住拖动可换位置，松手吸附到安全边缘。低刷新模式拖动时约每 120 毫秒更新一次，属于正常的墨水屏防残影行为。</string>
     <string name="system_page_missing">系统未提供该设置页，请手动到系统设置中开启</string>
 
     <string name="background_section">后台运行授权（电纸书必做）</string>
@@ -71,7 +71,7 @@
     <string name="slider_swipe_duration">滑动耗时</string>
 
     <string name="section_appearance">外观与行为</string>
-    <string name="appearance_hint">全部参数以墨水屏为默认。边缘距离用于避让电纸书侧边翻页/返回区；隐藏悬浮球后仍可从桌面图标重新打开。</string>
+    <string name="appearance_hint">全部参数以墨水屏为默认。若球落入侧边翻页/返回禁止区，请先点“移到屏幕中央”，再调大侧边安全距离；隐藏悬浮球后仍可从桌面图标重新打开。</string>
     <string name="overlay_mode_title">悬浮窗兼容模式</string>
     <string name="overlay_mode_hint">若球能显示但完全点不动，请选“普通悬浮窗”；该模式需要上方引导页里的悬浮窗权限。</string>
     <string name="overlay_mode_auto">自动（优先普通悬浮窗）</string>
@@ -82,8 +82,11 @@
     <string name="overlay_strict_hint">仅在已选“普通悬浮窗”且已授权时生效。打开后普通悬浮窗建不起来就让球不出现——球消失说明是系统拒绝这类窗口，不是手势问题。球没了可从桌面图标回到这里关掉。</string>
     <string name="slider_ball_size">悬浮球直径</string>
     <string name="slider_menu_size">菜单按钮尺寸</string>
-    <string name="slider_edge_margin">离屏幕边缘距离</string>
+    <string name="slider_edge_margin">离屏幕边缘安全距离</string>
     <string name="slider_auto_collapse">菜单自动收起</string>
+    <string name="center_float_ball">将悬浮球移到屏幕中央</string>
+    <string name="center_float_ball_done">悬浮球位置已重置到屏幕中央</string>
+    <string name="center_float_ball_failed">无法读取屏幕尺寸，悬浮球位置未改变</string>
     <string name="switch_hide_ball">隐藏悬浮球（只保留通知回桌面）</string>
     <string name="switch_low_refresh">墨水屏低刷新拖动（低频反馈，减少残影）</string>
     <string name="switch_keep_alive">常驻通知（保活，点击通知返回桌面）</string>

@@ -36,6 +36,25 @@ object OverlayGeometry {
         return PixelPoint(x, bounds.top + availableHeight / 2)
     }
 
+    /**
+     * 把窗口移到安全区中央，供设置页在悬浮球掉进厂商手势死区时脱困。
+     * 窗口大于安全区时仍返回可夹取的左上角，不产生负坐标。
+     */
+    fun centerPosition(window: PixelSize, bounds: PixelBounds): PixelPoint {
+        val availableWidth = (bounds.right - bounds.left - window.width.coerceAtLeast(0))
+            .coerceAtLeast(0)
+        val availableHeight = (bounds.bottom - bounds.top - window.height.coerceAtLeast(0))
+            .coerceAtLeast(0)
+        return clamp(
+            PixelPoint(
+                x = bounds.left + availableWidth / 2,
+                y = bounds.top + availableHeight / 2
+            ),
+            window,
+            bounds
+        )
+    }
+
     fun clamp(position: PixelPoint, window: PixelSize, bounds: PixelBounds): PixelPoint {
         val maxX = max(bounds.left, bounds.right - window.width.coerceAtLeast(0))
         val maxY = max(bounds.top, bounds.bottom - window.height.coerceAtLeast(0))

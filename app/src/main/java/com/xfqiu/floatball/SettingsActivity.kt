@@ -15,11 +15,16 @@ import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import com.xfqiu.floatball.core.AppShortcut
+import com.xfqiu.floatball.core.OverlayGeometry
 import com.xfqiu.floatball.core.OverlayMode
 import com.xfqiu.floatball.core.OverlayModePolicy
 import com.xfqiu.floatball.core.PageTurnMode
+import com.xfqiu.floatball.core.PixelBounds
+import com.xfqiu.floatball.core.PixelSize
 import com.xfqiu.floatball.core.Prefs
+import com.xfqiu.floatball.core.dpToPx
 import com.xfqiu.floatball.core.loadShortcutIcon
+import com.xfqiu.floatball.core.realScreenSize
 import com.xfqiu.floatball.service.FloatBallService
 import com.xfqiu.floatball.service.KeepAliveService
 
@@ -45,6 +50,7 @@ class SettingsActivity : Activity() {
         shortcutContainer = findViewById(R.id.shortcut_container)
         addShortcutButton = findViewById(R.id.add_shortcut)
         addShortcutButton.setOnClickListener { pickApp() }
+        findViewById<View>(R.id.center_float_ball).setOnClickListener { centerFloatBall() }
         bindPageTurnMode()
         bindOverlayMode()
         fillSliders(R.id.gesture_slider_container, gestureSliders())
@@ -195,6 +201,26 @@ class SettingsActivity : Activity() {
             Prefs.AUTO_COLLAPSE_MIN_SEC, Prefs.AUTO_COLLAPSE_MAX_SEC, prefs.autoCollapseSeconds
         ) { prefs.autoCollapseSeconds = it }
     )
+
+    /**
+     * 厂商侧边手势区可能在 ACTION_DOWN 前就截走事件，球落进去后无法靠拖动自救。
+     * 设置页始终可从桌面图标进入，因此在这里直接保存物理屏幕中央坐标并重载窗口。
+     */
+    private fun centerFloatBall() {
+        val screen = realScreenSize()
+        if (screen.x <= 0 || screen.y <= 0) {
+            Toast.makeText(this, R.string.center_float_ball_failed, Toast.LENGTH_LONG).show()
+            return
+        }
+        val size = dpToPx(prefs.ballSizeDp)
+        val position = OverlayGeometry.centerPosition(
+            window = PixelSize(size, size),
+            bounds = PixelBounds(0, 0, screen.x, screen.y)
+        )
+        prefs.setBallPosition(position)
+        notifyService()
+        Toast.makeText(this, R.string.center_float_ball_done, Toast.LENGTH_SHORT).show()
+    }
 
     private fun fillSliders(containerId: Int, specs: List<SliderSpec>) {
         val container = findViewById<LinearLayout>(containerId)

@@ -4,6 +4,8 @@
     <dimen name="gap">8dp</dimen>
     <dimen name="gap_large">16dp</dimen>
     <dimen name="card_padding">12dp</dimen>
+    <!-- 让滑块两端避开厂商电纸书的侧边系统手势区。 -->
+    <dimen name="slider_edge_padding">32dp</dimen>
     <dimen name="row_min_height">48dp</dimen>
     <dimen name="icon_small">32dp</dimen>
     <dimen name="icon_large">40dp</dimen>
